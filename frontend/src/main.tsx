@@ -26,6 +26,7 @@ import {
 } from "./catalog";
 import { ResourcePage } from "./resource";
 import { ResourceManagement } from "./resource-manage";
+import { OrganizationDatasets } from "./organization-datasets";
 import {
   Account,
   Administration,
@@ -101,6 +102,10 @@ function App() {
             <Route
               path="/organization/manage_members/:id"
               element={<MembersPage />}
+            />
+            <Route
+              path="/organization/bulk_process/:id"
+              element={<OrganizationDatasets />}
             />
             <Route path="/organization/:id" element={<OrganizationDetail />} />
             <Route path="/group" element={<Organizations topics />} />

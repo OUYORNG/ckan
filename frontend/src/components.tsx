@@ -371,7 +371,9 @@ export function DatasetCard({
     ),
   ];
   return (
-    <article className={"dataset-card" + (compact ? " compact" : "")}>
+    <article
+      className={"dataset-card dataset-entry" + (compact ? " compact" : "")}
+    >
       <div className="card-topline">
         <span className="dataset-icon">
           <Database size={20} />

@@ -28,7 +28,7 @@ const env = Object.fromEntries(fs.readFileSync(path.join(root, 'ckan-docker/.env
     ]);
     await page.goto(report.organization_url, { waitUntil: 'networkidle' });
     for (const dataset of report.datasets)
-      await page.locator(`.dataset-card h3 a[href="/dataset/${dataset.name}"]`).waitFor();
+      await page.locator(`.dataset-entry h3 a[href="/dataset/${dataset.name}"]`).waitFor();
     await page.screenshot({ path: path.join(__dirname, 'organization.png'), fullPage: true });
     for (const dataset of report.datasets) {
       await page.goto(dataset.table_url, { waitUntil: 'networkidle' });

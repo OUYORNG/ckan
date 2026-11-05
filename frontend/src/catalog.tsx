@@ -36,6 +36,7 @@ import {
   PrivacyBadge,
 } from "./components";
 import { useSession } from "./session";
+import { DatasetLayoutToggle, DatasetRows } from "./dataset-layout";
 import type { Dataset, Organization, SearchResult } from "./types";
 
 export function Home() {
@@ -277,6 +278,7 @@ export function Catalog({
   const topic = group || params.get("group") || "";
   const page = Math.max(1, Number(params.get("page")) || 1);
   const sort = params.get("sort") || "metadata_modified desc";
+  const layout = params.get("layout") === "cards" ? "cards" : "rows";
   const clauses = [
     org && `organization:${JSON.stringify(org)}`,
     format && `res_format:${JSON.stringify(format)}`,
@@ -436,6 +438,10 @@ export function Catalog({
               </strong>
               <span className="muted">{q ? ` for “${q}”` : " to explore"}</span>
             </div>
+            <DatasetLayoutToggle
+              value={layout}
+              onChange={(value) => filter("layout", value)}
+            />
             <label className="sort-control">
               Sort by{" "}
               <select
@@ -445,6 +451,8 @@ export function Catalog({
               >
                 <option value="metadata_modified desc">Recently updated</option>
                 <option value="title_string asc">Title A–Z</option>
+                <option value="title_string desc">Title Z–A</option>
+                <option value="metadata_created desc">Newest first</option>
                 <option value="score desc, metadata_modified desc">
                   Relevance
                 </option>
@@ -477,11 +485,15 @@ export function Catalog({
             <ErrorState error={result.error} retry={result.reload} />
           ) : result.data?.results.length ? (
             <>
-              <div className="dataset-grid">
-                {result.data.results.map((dataset) => (
-                  <DatasetCard key={dataset.id} dataset={dataset} />
-                ))}
-              </div>
+              {layout === "cards" ? (
+                <div className="dataset-grid">
+                  {result.data.results.map((dataset) => (
+                    <DatasetCard key={dataset.id} dataset={dataset} />
+                  ))}
+                </div>
+              ) : (
+                <DatasetRows datasets={result.data.results} />
+              )}
               <Pagination
                 count={result.data.count}
                 page={page}
@@ -667,8 +679,11 @@ export function OrganizationDetail({ topic = false }: { topic?: boolean }) {
           <Database size={16} />
           Datasets
         </Link>
-        {!topic && own?.capacity === "admin" && (
+        {!topic && (own?.capacity === "admin" || session?.user?.sysadmin) && (
           <>
+            <Link to={"/organization/bulk_process/" + org.name}>
+              Manage datasets
+            </Link>
             <Link to={"/organization/members/" + org.name}>
               <UsersIcon />
               Members

@@ -45,7 +45,7 @@ async function login(context, name, password) { const value = await session(cont
 
   await page.goto(base + '/organization/ministry-of-information', { waitUntil: 'networkidle' });
   await page.getByRole('heading', { name: /Ministry of Information/ }).waitFor();
-  await page.locator('.dataset-card').first().waitFor();
+  await page.locator('.dataset-entry').first().waitFor();
   await page.screenshot({ path: path.join(output, 'organization-desktop.png'), fullPage: true });
   const imported = JSON.parse(fs.readFileSync(path.join(root, 'migrations/11-upload/report.json'), 'utf8'));
   for (const item of imported.datasets) {
@@ -204,7 +204,7 @@ async function login(context, name, password) { const value = await session(cont
   await page.getByRole('button', { name: 'Open navigation' }).click();
   await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'Data catalog' }).click();
   await page.waitForURL('**/dataset');
-  await page.locator('.dataset-card').first().waitFor();
+  await page.locator('.dataset-entry').first().waitFor();
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Mobile catalog must not overflow horizontally.');
   await page.screenshot({ path: path.join(output, 'catalog-mobile.png'), fullPage: true });
   await page.goto(base + new URL(imported.datasets[1].table_url).pathname, { waitUntil: 'networkidle' });

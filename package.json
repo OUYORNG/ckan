@@ -7,7 +7,8 @@
     "dev:ui": "npm --prefix frontend run dev",
     "build:ui": "npm --prefix frontend run build",
     "verify:portal": "node frontend/tests/portal.cjs",
-    "verify:resources": "node frontend/tests/resource-management.cjs"
+    "verify:resources": "node frontend/tests/resource-management.cjs",
+    "verify:organizations": "node frontend/tests/organization-datasets.cjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"

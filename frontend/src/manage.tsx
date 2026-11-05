@@ -397,6 +397,7 @@ export function DatasetEditor() {
 }
 function DatasetEditorContent() {
   const { id } = useParams();
+  const [params] = useSearchParams();
   const { session } = useSession();
   const navigate = useNavigate();
   const existing = useAction<Dataset>("package_show", { id }, Boolean(id));
@@ -413,7 +414,14 @@ function DatasetEditorContent() {
     title: "",
     name: "",
     notes: "",
-    owner_org: organizations[0]?.id || "",
+    owner_org:
+      organizations.find(
+        (org) =>
+          org.id === params.get("organization") ||
+          org.name === params.get("organization"),
+      )?.id ||
+      organizations[0]?.id ||
+      "",
     visibility: "private",
     license_id: "notspecified",
     tags: "",

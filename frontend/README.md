@@ -51,6 +51,12 @@ Resource editors can open **Edit resource** from a resource page. Five tabs prov
 
 Metadata-only edits preserve the existing file, provenance and table rows. Replacing the source file on the edit form changes the downloadable file; use the DataStore tab to import its rows. DataPusher accepts flat CSV, TSV and supported spreadsheets. The migrated JSON resources already have searchable tables; upload a flat CSV to replace their table data. Migration/API imports may have no DataPusher upload log. Dictionary type overrides apply on the next import.
 
+## Organization dataset management
+
+Organization administrators and system administrators can open **Manage datasets** from an organization, including the native-compatible `/organization/bulk_process/<organization>` URL. Row view is the default. It supports individual selection, selection of the current page (20 datasets), and confirmed bulk actions to make datasets public/private or delete them from the active catalog. Deletion uses CKAN's native soft deletion; it does not purge source files. The backend validates the whole selection and organization permissions before calling CKAN's bulk actions.
+
+Card view is for browsing: it has no selection checkboxes or bulk action controls, and switching layouts clears selection. Search, pagination and sorting by title, last updated or creation date are available. Sorting is a display order, not a persisted manual dataset sequence. The catalog and organization browsing pages also support rows/cards and default to rows. Adding a dataset from organization management preselects that organization.
+
 ## Verification
 
 For the existing local test instance with the migrated 11A workbooks:
@@ -60,11 +66,14 @@ npm ci
 npm run verify:browser
 npm run verify:portal
 npm run verify:resources
+npm run verify:organizations
 ```
 
 `verify:browser` checks the imported organization, three table previews, and searches. `verify:portal` additionally checks anonymous/private access, CSRF, create/edit/upload flows, dataset contacts/source/custom metadata and resource preservation, organization logo upload/removal, CSV export, API-token management, member/editor/outside-user permissions, desktop/mobile rendering, and JavaScript/server errors. It creates temporary QA users and data on localhost:5100 and cleans them up afterward. Do not point this test at production. Screenshots are written to ignored `frontend/test-results/`.
 
 `verify:resources` checks metadata preservation, dictionary edits without changing rows or unique keys, view management and embedded previews, file replacement and DataPusher import/logs, editor permissions, and mobile layout. It creates and deletes temporary QA records on the local instance.
+
+`verify:organizations` checks row/card behavior, page-scoped selection, confirmed visibility changes and deletion, search/sorting, resource and table preservation, permissions and CSRF, organization preselection, and mobile layouts using temporary QA records. The original imported datasets are only read during this check.
 
 ## Update an existing deployment
 

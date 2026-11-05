@@ -199,6 +199,42 @@ def make_blueprint():
         except (NotFound, NotAuthorized):
             return error("The organization's members are not available.", 403)
 
+    @blueprint.route("/portal/api/organizations/<id>/dataset-permissions")
+    def organization_dataset_permissions(id):
+        try:
+            organization = toolkit.get_action("organization_show")(context(), {"id": id, "include_datasets": False, "include_users": False})
+            return jsonify(success=True, result={"manage": permission("bulk_update_public", {"org_id": organization["id"]})})
+        except (NotFound, NotAuthorized):
+            return error("This organization is not available to your account.", 403)
+
+    @blueprint.route("/portal/api/organizations/<id>/datasets/bulk", methods=["POST"])
+    def organization_dataset_bulk(id):
+        failure = protect_write()
+        if failure:
+            return failure
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or data.get("operation") not in {"private", "public", "delete"}:
+            return error("Choose a supported dataset operation.")
+        datasets = data.get("datasets")
+        if not isinstance(datasets, list) or not 1 <= len(datasets) <= 100 or any(not isinstance(value, str) or not value for value in datasets) or len(set(datasets)) != len(datasets):
+            return error("Select between 1 and 100 unique dataset IDs.")
+        action = "bulk_update_" + data["operation"]
+        try:
+            organization = toolkit.get_action("organization_show")(context(), {"id": id, "include_datasets": False, "include_users": False})
+            toolkit.check_access(action, context(), {"org_id": organization["id"]})
+            # Validate the full selection before any mutation. Native bulk actions
+            # accept UUIDs and scope database updates to this organization.
+            for dataset_id in datasets:
+                dataset = toolkit.get_action("package_show")(context(), {"id": dataset_id})
+                if dataset["id"] != dataset_id or dataset.get("owner_org") != organization["id"] or dataset.get("state") != "active":
+                    return error("Every selected dataset must be active and belong to this organization.")
+            toolkit.get_action(action)(context(), {"org_id": organization["id"], "datasets": datasets})
+            return jsonify(success=True, result={"count": len(datasets), "operation": data["operation"]})
+        except (NotFound, NotAuthorized):
+            return error("Organization administrator access is required for the selected datasets.", 403)
+        except ValidationError as exception:
+            return error("The datasets could not be updated.", 409, exception.error_dict)
+
     @blueprint.route("/portal/api/users")
     def users():
         if not current_user.is_authenticated or not current_user.sysadmin:
