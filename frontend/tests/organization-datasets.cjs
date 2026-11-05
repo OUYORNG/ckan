@@ -25,7 +25,11 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   await login(sysadmin, env.CKAN_SYSADMIN_NAME, env.CKAN_SYSADMIN_PASSWORD);
   const sourcePage = await sysadmin.newPage();
   await sourcePage.goto(base + '/organization/ministry-of-information', { waitUntil: 'networkidle' });
-  await sourcePage.getByRole('link', { name: 'Manage datasets', exact: true }).click();
+  assert.equal(await sourcePage.getByRole('link', { name: 'Manage datasets', exact: true }).count(), 0);
+  assert.equal(await sourcePage.getByRole('checkbox').count(), 0);
+  await sourcePage.getByRole('button', { name: 'Card view', exact: true }).click();
+  await sourcePage.locator('.dataset-card').first().waitFor();
+  await sourcePage.getByRole('button', { name: 'Edit datasets', exact: true }).click();
   await sourcePage.getByLabel('Select all datasets on this page').waitFor();
   await sourcePage.locator('.dataset-rows tbody tr').first().waitFor();
   assert.equal(await sourcePage.locator('.dataset-rows tbody tr').count(), 3);
@@ -35,7 +39,7 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   const organization = await native('organization_show', { id: org });
   const other = await native('organization_show', { id: otherOrg });
   for (let i = 0; i < 21; i++) {
-    const dataset = await native('package_create', { name: `${org}-${i}`, title: `Dataset ${String(i + 1).padStart(2, '0')}`, owner_org: organization.id, private: true, notes: 'Temporary organization dataset management verification.', extras: [{ key: 'source_sha256', value: 'preserve-provenance' }] });
+    const dataset = await native('package_create', { name: `${org}-${i}`, title: `Dataset ${String(i + 1).padStart(2, '0')}`, owner_org: organization.id, private: true, notes: i === 0 ? null : 'Temporary organization dataset management verification.', extras: [{ key: 'source_sha256', value: 'preserve-provenance' }] });
     createdDatasets.push(dataset.id);
   }
   const unrelated = await native('package_create', { name: otherOrg + '-dataset', title: 'Unrelated dataset', owner_org: other.id, private: true });
@@ -51,7 +55,7 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
     const permission = await json(await context.request.get(base + `/portal/api/organizations/${org}/dataset-permissions`));
     assert.equal(permission.manage, account.role === 'admin');
     if (account.role === 'admin') administrator = context;
-    else { await bulk(context, 'public', [createdDatasets[0]], 403); await context.close(); }
+    else { await bulk(context, 'public', [createdDatasets[0]], 403); const reader = await context.newPage(); await reader.goto(base + '/organization/' + org + '?edit=true', { waitUntil: 'networkidle' }); assert.equal(await reader.getByRole('button', { name: 'Edit datasets', exact: true }).count(), 0); assert.equal(await reader.getByRole('checkbox').count(), 0); await context.close(); }
   }
   assert.equal((await administrator.request.post(base + `/portal/api/organizations/${org}/datasets/bulk`, { data: { operation: 'public', datasets: [createdDatasets[0]] } })).status(), 400);
   await bulk(administrator, 'unsupported', [createdDatasets[0]], 400);
@@ -63,9 +67,16 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   const page = await administrator.newPage();
   page.on('pageerror', error => errors.push(error.message));
   page.on('response', response => { if (response.url().startsWith(base) && response.status() >= 500) errors.push(response.status() + ' ' + response.url()); });
-  const url = base + '/organization/bulk_process/' + org;
+  const url = base + '/organization/' + org;
   await page.goto(url, { waitUntil: 'networkidle' });
   assert.equal(await page.getByRole('button', { name: 'Row view', exact: true }).getAttribute('aria-pressed'), 'true');
+  assert.equal(await page.getByRole('checkbox').count(), 0);
+  await page.getByRole('button', { name: 'Card view', exact: true }).click();
+  await page.locator('.dataset-card').first().waitFor();
+  await page.getByRole('button', { name: 'Edit datasets', exact: true }).click();
+  await page.getByLabel('Select all datasets on this page').waitFor();
+  await page.getByLabel('Sort datasets').selectOption('title_string asc');
+  await page.waitForFunction(() => document.querySelector('.dataset-row-title h3')?.textContent === 'Dataset 01');
   assert.equal(await page.locator('.dataset-rows tbody tr').count(), 20);
   assert.deepEqual(await page.locator('.dataset-row-title h3').allTextContents(), Array.from({ length: 20 }, (_, i) => 'Dataset ' + String(i + 1).padStart(2, '0')));
   await page.getByLabel('Select Dataset 01', { exact: true }).check();
@@ -75,7 +86,7 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   assert.equal(await page.getByRole('button', { name: /Make private|Make public|Delete datasets/ }).count(), 0);
   assert.equal(await page.getByRole('region', { name: 'Confirm bulk action' }).count(), 0);
   await page.screenshot({ path: path.join(output, 'organization-datasets-cards.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Row view', exact: true }).click();
+  await page.getByRole('button', { name: 'Edit datasets', exact: true }).click();
   await page.getByText('0 selected', { exact: true }).waitFor();
   await page.getByLabel('Select all datasets on this page').check();
   await page.getByText('20 selected', { exact: true }).waitFor();
@@ -101,17 +112,17 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   assert.deepEqual(after.extras, original.extras);
   assert.deepEqual((await native('datastore_search', { resource_id: resource.id })).records.map(({ year, value }) => ({ year, value })), [{ year: 2024, value: 15 }]);
   console.log('Row-only selection, card browsing, cancellation, page-scoped visibility changes, and source/table preservation passed.');
-  await page.goto(url + '?page=2', { waitUntil: 'networkidle' });
+  await page.goto(url + '?edit=true&sort=title_string%20asc&page=2', { waitUntil: 'networkidle' });
   await page.getByLabel('Select Dataset 21', { exact: true }).check();
   await page.getByRole('button', { name: 'Delete datasets', exact: true }).click();
   await page.getByRole('button', { name: 'Confirm delete datasets', exact: true }).click();
-  await page.waitForURL('**/organization/bulk_process/' + org + '?page=1');
+  await page.waitForURL(value => value.pathname === '/organization/' + org && value.searchParams.get('page') === '1');
   await page.waitForFunction(() => document.querySelectorAll('.dataset-rows tbody tr').length === 20);
   assert.equal(await page.locator('.dataset-rows tbody tr').count(), 20);
-  await page.getByLabel('Sort organization datasets').selectOption('title_string desc');
+  await page.getByLabel('Sort datasets').selectOption('title_string desc');
   await page.waitForFunction(() => document.querySelector('.dataset-row-title h3')?.textContent === 'Dataset 20');
   assert.equal(await page.locator('.dataset-row-title h3').first().textContent(), 'Dataset 20');
-  await page.getByLabel('Search organization datasets').fill('"Dataset 03"');
+  await page.getByLabel('Search catalog').fill('"Dataset 03"');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
   await page.locator('.dataset-row-title h3').filter({ hasText: 'Dataset 03' }).waitFor();
   await page.waitForFunction(() => document.querySelectorAll('.dataset-rows tbody tr').length === 1);
@@ -129,6 +140,7 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   await page.getByRole('link', { name: 'Add dataset', exact: true }).click();
   assert.equal(await page.getByLabel('Organization', { exact: true }).inputValue(), organization.id);
   await page.goto(url, { waitUntil: 'networkidle' });
+  await page.getByRole('button', { name: 'Edit datasets', exact: true }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByLabel('Select all datasets on this page').waitFor();
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
@@ -137,6 +149,14 @@ async function bulk(context, operation, datasets, expected = 200) { const value 
   await page.locator('.dataset-card').first().waitFor();
   assert.equal(await page.getByRole('checkbox').count(), 0);
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1));
+  await page.getByRole('button', { name: 'Edit datasets', exact: true }).click();
+  await page.getByLabel('Select all datasets on this page').waitFor();
+  await page.getByRole('button', { name: 'Done editing', exact: true }).click();
+  await page.getByLabel('Select all datasets on this page').waitFor({ state: 'detached' });
+  assert.equal(await page.getByRole('checkbox').count(), 0);
+  await page.goto(base + '/organization/bulk_process/' + org, { waitUntil: 'networkidle' });
+  await page.waitForURL(value => value.pathname === '/organization/' + org && value.searchParams.get('edit') === 'true');
+  await page.getByLabel('Select all datasets on this page').waitFor();
   assert.deepEqual(errors, []);
   console.log('New dataset organization preselection, mobile row/card layouts, and browser checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {

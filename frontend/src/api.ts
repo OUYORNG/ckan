@@ -140,8 +140,8 @@ export function date(value?: string) {
         year: "numeric",
       }).format(parsed);
 }
-export function plain(value = "") {
-  return value
+export function plain(value?: string | null) {
+  return (value || "")
     .replace(/^#{1,6}\s+/gm, "")
     .replace(/`([^`]+)`/g, "$1")
     .replace(/\*\*([^*]+)\*\*/g, "$1")

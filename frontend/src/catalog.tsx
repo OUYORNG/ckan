@@ -20,6 +20,7 @@ import {
   Plus,
   Search,
   SlidersHorizontal,
+  Pencil,
   X,
 } from "lucide-react";
 import { date, plain, request, useAction, useData } from "./api";
@@ -30,6 +31,7 @@ import {
   ErrorState,
   FormatBadge,
   Loading,
+  Notice,
   OrgAvatar,
   PageTitle,
   Pagination,
@@ -37,6 +39,7 @@ import {
 } from "./components";
 import { useSession } from "./session";
 import { DatasetLayoutToggle, DatasetRows } from "./dataset-layout";
+import { DatasetBulkEditor } from "./organization-datasets";
 import type { Dataset, Organization, SearchResult } from "./types";
 
 export function Home() {
@@ -262,9 +265,11 @@ export function Home() {
 export function Catalog({
   organization,
   group,
+  manageOrganization,
 }: {
   organization?: string;
   group?: string;
+  manageOrganization?: string;
 }) {
   const { session } = useSession();
   const [params, setParams] = useSearchParams();
@@ -279,6 +284,12 @@ export function Catalog({
   const page = Math.max(1, Number(params.get("page")) || 1);
   const sort = params.get("sort") || "metadata_modified desc";
   const layout = params.get("layout") === "cards" ? "cards" : "rows";
+  const editing =
+    Boolean(manageOrganization) &&
+    layout === "rows" &&
+    params.get("edit") === "true";
+  const [bulkNotice, setBulkNotice] = useState("");
+  const pageSize = organization ? 20 : 9;
   const clauses = [
     org && `organization:${JSON.stringify(org)}`,
     format && `res_format:${JSON.stringify(format)}`,
@@ -288,8 +299,8 @@ export function Catalog({
   const result = useAction<SearchResult>("package_search", {
     q,
     fq: clauses.join(" AND "),
-    rows: 9,
-    start: (page - 1) * 9,
+    rows: pageSize,
+    start: (page - 1) * pageSize,
     sort,
     include_private: Boolean(session?.user),
     "facet.field": ["organization", "res_format", "tags"],
@@ -298,6 +309,7 @@ export function Catalog({
     const next = new URLSearchParams(params);
     value ? next.set(key, value) : next.delete(key);
     if (key !== "page") next.delete("page");
+    if (key === "layout" && value === "cards") next.delete("edit");
     setParams(next);
   }
   function search(event: FormEvent) {
@@ -438,6 +450,33 @@ export function Catalog({
               </strong>
               <span className="muted">{q ? ` for “${q}”` : " to explore"}</span>
             </div>
+            {manageOrganization && (
+              <button
+                className="button button-outline"
+                onClick={() => {
+                  const next = new URLSearchParams(params);
+                  next.set("layout", "rows");
+                  editing ? next.delete("edit") : next.set("edit", "true");
+                  setParams(next);
+                  setBulkNotice("");
+                }}
+              >
+                <Pencil size={15} />
+                {editing ? "Done editing" : "Edit datasets"}
+              </button>
+            )}
+            {manageOrganization && (
+              <Link
+                className="button button-dark"
+                to={
+                  "/dataset/new?organization=" +
+                  encodeURIComponent(manageOrganization)
+                }
+              >
+                <Plus size={15} />
+                Add dataset
+              </Link>
+            )}
             <DatasetLayoutToggle
               value={layout}
               onChange={(value) => filter("layout", value)}
@@ -479,13 +518,25 @@ export function Catalog({
                 ))}
             </div>
           )}
+          {bulkNotice && <Notice>{bulkNotice}</Notice>}
           {result.loading ? (
             <Loading />
           ) : result.error ? (
             <ErrorState error={result.error} retry={result.reload} />
           ) : result.data?.results.length ? (
             <>
-              {layout === "cards" ? (
+              {editing && manageOrganization ? (
+                <DatasetBulkEditor
+                  key={params.toString()}
+                  organizationId={manageOrganization}
+                  datasets={result.data.results}
+                  onApplied={(message, operation) => {
+                    setBulkNotice(message);
+                    if (operation === "delete" && page > 1) filter("page", "1");
+                    result.reload();
+                  }}
+                />
+              ) : layout === "cards" ? (
                 <div className="dataset-grid">
                   {result.data.results.map((dataset) => (
                     <DatasetCard key={dataset.id} dataset={dataset} />
@@ -497,7 +548,7 @@ export function Catalog({
               <Pagination
                 count={result.data.count}
                 page={page}
-                size={9}
+                size={pageSize}
                 onPage={(value) => filter("page", String(value))}
               />
             </>
@@ -681,9 +732,6 @@ export function OrganizationDetail({ topic = false }: { topic?: boolean }) {
         </Link>
         {!topic && (own?.capacity === "admin" || session?.user?.sysadmin) && (
           <>
-            <Link to={"/organization/bulk_process/" + org.name}>
-              Manage datasets
-            </Link>
             <Link to={"/organization/members/" + org.name}>
               <UsersIcon />
               Members
@@ -695,6 +743,11 @@ export function OrganizationDetail({ topic = false }: { topic?: boolean }) {
       <Catalog
         organization={!topic ? org.name : undefined}
         group={topic ? org.name : undefined}
+        manageOrganization={
+          !topic && (own?.capacity === "admin" || session?.user?.sysadmin)
+            ? org.id
+            : undefined
+        }
       />
     </div>
   );
