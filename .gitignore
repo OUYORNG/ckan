@@ -47,6 +47,8 @@ logs/
 dist/
 build/
 *.egg-info/
+*.tsbuildinfo
+/extensions/ckanext-nis-portal/ckanext/nis_portal/public/
 
 # Editor and operating system files
 .DS_Store

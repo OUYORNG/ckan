@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "verify:browser": "node migrations/11-upload/verify_browser.cjs"
+    "verify:browser": "node migrations/11-upload/verify_browser.cjs",
+    "dev:ui": "npm --prefix frontend run dev",
+    "build:ui": "npm --prefix frontend run build",
+    "verify:portal": "node frontend/tests/portal.cjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"

@@ -1,14 +1,28 @@
+FROM node:22-alpine AS portal-ui
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
 FROM ckan/ckan-base:2.11
 
 # Install any extensions needed by your CKAN instance
 # See Dockerfile.dev for more details and examples
 
 # Copy custom initialization scripts
-COPY --chown=ckan-sys:ckan-sys docker-entrypoint.d/* /docker-entrypoint.d/
+COPY --chown=ckan-sys:ckan-sys ckan-docker/ckan/docker-entrypoint.d/* /docker-entrypoint.d/
 
 # Apply any patches needed to CKAN core or any of the built extensions (not the
 # runtime mounted ones)
-COPY --chown=ckan-sys:ckan-sys patches ${APP_DIR}/patches
+COPY --chown=ckan-sys:ckan-sys ckan-docker/ckan/patches ${APP_DIR}/patches
+
+COPY --chown=ckan:ckan-sys extensions/ckanext-nis-portal ${SRC_DIR}/ckanext-nis-portal
+COPY --from=portal-ui --chown=ckan:ckan-sys /app/dist/ ${SRC_DIR}/ckanext-nis-portal/ckanext/nis_portal/public/
+
+USER root
+
+RUN pip install --no-deps --no-build-isolation ${SRC_DIR}/ckanext-nis-portal
 
 USER ckan
 

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ckanext-nis-portal"
+version = "1.0.0"
+description = "React interface and session-authenticated bridge for the NIS CKAN portal"
+requires-python = ">=3.10"
+
+[project.entry-points."ckan.plugins"]
+nis_portal = "ckanext.nis_portal.plugin:NisPortalPlugin"
+
+[tool.setuptools.packages.find]
+include = ["ckanext", "ckanext.nis_portal*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"ckanext.nis_portal" = ["public/*", "public/assets/*", "public/licenses/*"]

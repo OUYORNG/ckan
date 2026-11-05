@@ -23,30 +23,30 @@ const env = Object.fromEntries(fs.readFileSync(path.join(root, 'ckan-docker/.env
     await page.locator('[name=login]').fill(env.CKAN_SYSADMIN_NAME);
     await page.locator('[name=password]').fill(env.CKAN_SYSADMIN_PASSWORD);
     await Promise.all([
-      page.waitForURL('**/dashboard/**'),
-      page.getByRole('button', { name: 'Login', exact: true }).click(),
+      page.waitForURL('**/workspace'),
+      page.getByRole('button', { name: 'Sign in', exact: true }).click(),
     ]);
     await page.goto(report.organization_url, { waitUntil: 'networkidle' });
     for (const dataset of report.datasets)
-      await page.locator(`.dataset-heading a[href="/dataset/${dataset.name}"]`).waitFor();
+      await page.locator(`.dataset-card h3 a[href="/dataset/${dataset.name}"]`).waitFor();
     await page.screenshot({ path: path.join(__dirname, 'organization.png'), fullPage: true });
     for (const dataset of report.datasets) {
       await page.goto(dataset.table_url, { waitUntil: 'networkidle' });
-      const frame = page.frameLocator('iframe');
-      await frame.locator('table.dataTable tbody tr').first().waitFor();
-      const body = await frame.locator('body').innerText();
-      if (!body.includes(`of ${dataset.rows} entries`))
+      await page.locator('.data-table tbody tr').first().waitFor();
+      const body = await page.locator('.table-summary').innerText();
+      if (!body.includes(`${dataset.rows} records`))
         throw new Error(`Unexpected table count for ${dataset.name}: ${body.slice(-1000)}`);
       await page.screenshot({ path: path.join(__dirname, dataset.name + '.png'), fullPage: true });
       console.log('Verified browser table:', dataset.name, dataset.rows, 'records');
       const search = dataset.rows === 58 ? '2024' : dataset.name.includes('11a2') ? 'CTN' : 'Fresh News';
       const matches = dataset.rows === 58 ? 19 : 1;
-      await frame.locator('input[type="search"]').first().fill(search);
-      await frame.locator('input[type="search"]').first().press('Enter');
-      await frame.locator('.dt-info,.dataTables_info').filter({ hasText: `of ${matches} entries` }).waitFor({timeout:10000}).catch(async error => { console.log('Filtered frame:', await frame.locator('body').innerText()); throw error; });
+      await page.getByLabel('Search table records').fill(search);
+      await page.getByLabel('Search table records').press('Enter');
+      await page.locator('.table-summary').filter({ hasText: `${matches} matching records` }).waitFor();
       console.log('Verified table search:', search, matches, 'matching records');
-      await frame.locator('input[type="search"]').first().fill('');
-      await frame.locator('.dt-info,.dataTables_info').filter({ hasText: `of ${dataset.rows} entries` }).waitFor();
+      await page.getByLabel('Search table records').fill('');
+      await page.getByLabel('Search table records').press('Enter');
+      await page.locator('.table-summary').filter({ hasText: `${dataset.rows} records` }).waitFor();
     }
     if (errors.length) throw new Error(errors.join('\n'));
     console.log('Admin organization page, three table previews, and local HTTP/JS checks passed.');

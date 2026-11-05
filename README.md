@@ -1,6 +1,6 @@
 # ckan
 
-Local CKAN 2.11.7 data portal with Docker Compose and a Ministry of Information workbook importer.
+CKAN 2.11.7 data portal with a React/TypeScript interface, Docker Compose, and a Ministry of Information workbook importer.
 
 ## Setup
 
@@ -19,6 +19,19 @@ For a clone made without submodules, run `git submodule update --init --recursiv
 Open http://localhost:5100/user/login. The admin username is `ckan_admin`; read `CKAN_SYSADMIN_PASSWORD` in `ckan-docker/.env` for the generated password. The setup helper generates credentials and refuses to replace an existing `.env`.
 
 The portal binds to localhost. Email delivery is not configured. CKAN, DataPusher, and Solr run with amd64 emulation on Apple Silicon.
+
+## React interface
+
+The portal at http://localhost:5100 uses React for catalog browsing, organization and dataset pages, table exploration, login, workspace, dataset editing, file uploads, organization membership, and account/API-token management. CKAN supplies the backend and enforces permissions through the same-origin session bridge.
+
+For an existing installation, enable the interface and rebuild:
+
+```sh
+python3 ckan-docker/enable-react.py
+./ckan-docker/local-ckan up -d --build --wait ckan datapusher
+```
+
+Read [the frontend guide](frontend/README.md) for development, verification, deployment, and rollback. No data migration is required for the UI change.
 
 ## Start and stop
 
@@ -62,6 +75,8 @@ npm run verify:browser
 - `ckan/`: upstream source pinned as a Git submodule at tag `ckan-2.11.7`.
 - `ckan-docker/`: vendored upstream Docker setup, local Compose overlay, configuration generator, and startup helpers.
 - `migrations/11-upload/`: importer, browser verifier, and migration documentation.
+- `frontend/`: React/TypeScript source and browser verification.
+- `extensions/ckanext-nis-portal/`: CKAN extension serving the bundle and authenticated API bridge.
 
 Credentials, source workbooks, generated data, catalog backups, reports, screenshots, logs, dependencies, and runtime files stay local through `.gitignore`. Databases and uploaded resources are not transferred by cloning this repository.
 

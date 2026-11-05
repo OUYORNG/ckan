@@ -23,8 +23,8 @@ services:
   ckan:
     platform: linux/amd64
     build:
-      context: ckan/
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: ckan-docker/ckan/Dockerfile
       args:
         - TZ=${TZ}
     networks:
