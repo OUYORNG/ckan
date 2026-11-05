@@ -19,13 +19,15 @@ READ_ACTIONS = {
     "package_search", "package_show", "resource_show", "organization_list",
     "organization_show", "organization_list_for_user", "group_list", "group_show",
     "license_list", "datastore_search", "status_show", "resource_view_list",
-    "member_roles_list", "api_token_list",
+    "member_roles_list", "api_token_list", "datastore_info", "resource_view_show",
 }
 WRITE_ACTIONS = {
     "package_create", "package_patch", "resource_create", "resource_update",
     "organization_create", "organization_patch", "organization_member_create",
     "organization_member_delete", "user_create", "user_update",
-    "api_token_create", "api_token_revoke",
+    "api_token_create", "api_token_revoke", "resource_patch", "datapusher_submit",
+    "resource_view_create", "resource_view_update", "resource_view_delete",
+    "resource_view_reorder",
 }
 
 
@@ -203,6 +205,85 @@ def make_blueprint():
             return jsonify(success=True, result={"edit": permission("package_update", {"id": id})})
         except (NotAuthorized, NotFound):
             return error("This dataset is not available to your account.", 403)
+
+    @blueprint.route("/portal/api/resource/<id>/status")
+    def resource_status(id):
+        if not permission("resource_update", {"id": id}):
+            return error("Editor access is required to manage this resource.", 403)
+        resource = toolkit.get_action("resource_show")(context(), {"id": id})
+        table = None
+        try:
+            table = toolkit.get_action("datastore_info")(context(), {"id": id})
+        except (NotFound, KeyError):
+            pass
+        try:
+            status = toolkit.get_action("datapusher_status")(context(), {"resource_id": id})
+        except NotFound:
+            status = {"status": "never", "last_updated": None}
+        except KeyError:
+            status = {"status": "unavailable", "error": "DataPusher is not enabled."}
+        except Exception:
+            current_app.logger.exception("Could not read resource upload status")
+            return error("The upload service is unavailable. Existing table data is unchanged.", 503)
+        task = status.get("task_info") or {}
+        logs = [{key: log.get(key) for key in ("timestamp", "level", "message")}
+                for log in task.get("logs", [])]
+        return jsonify(success=True, result={
+            "status": status.get("status", "never"), "last_updated": status.get("last_updated"),
+            "error": status.get("error") or task.get("error"), "logs": logs,
+            "datastore_active": table is not None,
+            "row_count": table.get("meta", {}).get("count") if table else None,
+            "field_count": len([field for field in table.get("fields", []) if not field["id"].startswith("_")]) if table else 0,
+            "can_import": resource.get("format", "").lower() in {"csv", "tsv", "xls", "xlsx", "ods"},
+            "datapusher_enabled": bool(config.get("ckan.datapusher.url")),
+        })
+
+    @blueprint.route("/portal/api/resource/<id>/dictionary", methods=["POST"])
+    def save_dictionary(id):
+        failure = protect_write()
+        if failure:
+            return failure
+        if not permission("resource_update", {"id": id}):
+            return error("Editor access is required to edit the data dictionary.", 403)
+        data = request.get_json(silent=True) or {}
+        updates = data.get("fields") if isinstance(data, dict) else None
+        if not isinstance(updates, list) or any(not isinstance(field, dict) or not isinstance(field.get("id"), str) for field in updates):
+            return error("Provide a list of existing fields to update.")
+        try:
+            current = toolkit.get_action("datastore_info")(context(), {"id": id})
+            existing = [field for field in current["fields"] if not field["id"].startswith("_")]
+            allowed = {field["id"] for field in existing}
+            if len({field["id"] for field in updates}) != len(updates) or any(field["id"] not in allowed for field in updates):
+                return error("The dictionary can only update existing, unique fields.")
+            by_id = {field["id"]: field for field in updates}
+            fields = []
+            for field in existing:
+                info = dict(field.get("info") or {})
+                incoming = by_id.get(field["id"], {})
+                for key in ("label", "notes", "type_override"):
+                    if key in incoming:
+                        if not isinstance(incoming[key], str):
+                            return error("Field labels, descriptions, and overrides must be text.")
+                        if key == "type_override" and incoming[key] not in ("", "text", "numeric", "timestamp"):
+                            return error("Unsupported field type override.")
+                        info[key] = incoming[key]
+                fields.append({"id": field["id"], "type": field["type"], "info": info})
+            toolkit.get_action("datastore_create")(context(), {"resource_id": id, "force": True, "fields": fields})
+            return jsonify(success=True, result={"saved": True})
+        except (NotFound, NotAuthorized):
+            return error("The DataStore table is not available to your account.", 403)
+        except ValidationError as exception:
+            return error("The dictionary could not be saved.", 409, exception.error_dict)
+
+    @blueprint.route("/portal/api/resource/<id>/view-types")
+    def resource_view_types(id):
+        if not permission("resource_update", {"id": id}):
+            return error("Editor access is required to manage resource views.", 403)
+        from ckan.lib.datapreview import get_allowed_view_plugins
+        resource = toolkit.get_action("resource_show")(context(), {"id": id})
+        package = toolkit.get_action("package_show")(context(), {"id": resource["package_id"]})
+        available = get_allowed_view_plugins({"resource": resource, "package": package})
+        return jsonify(success=True, result=[{"name": plugin.info()["name"], "title": str(plugin.info()["title"])} for plugin in available])
 
     for path in ("/login", "/account", "/workspace", "/api-guide"):
         blueprint.add_url_rule(path, "page_" + path[1:].replace("-", "_"), shell)

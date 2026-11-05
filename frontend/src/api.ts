@@ -129,7 +129,9 @@ export function safeUrl(value?: string): string | undefined {
 }
 export function date(value?: string) {
   if (!value) return "Not specified";
-  const parsed = new Date(value.endsWith("Z") ? value : value + "Z");
+  const needsUtc =
+    /^\d{4}-\d{2}-\d{2}T/.test(value) && !/(Z|[+-]\d{2}:\d{2})$/.test(value);
+  const parsed = new Date(needsUtc ? value + "Z" : value);
   return Number.isNaN(parsed.getTime())
     ? value
     : new Intl.DateTimeFormat("en", {

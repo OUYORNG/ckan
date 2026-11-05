@@ -43,6 +43,12 @@ This checks TypeScript and produces `frontend/dist/`. Production image builds ru
 
 The server configuration, database maintenance, and extension installation remain deployment tasks. The React administration screen currently covers user creation and listing; it does not replace every CKAN sysadmin configuration tool.
 
+## Resource management
+
+Resource editors can open **Edit resource** from a resource page. Five tabs provide resource name, description, format and file editing; DataStore uploads and imports; the latest DataPusher upload log; field labels, descriptions and import type overrides; and preview view creation, configuration, ordering and deletion. CKAN enforces editor permissions for every operation.
+
+Metadata-only edits preserve the existing file, provenance and table rows. Replacing the source file on the edit form changes the downloadable file; use the DataStore tab to import its rows. DataPusher accepts flat CSV, TSV and supported spreadsheets. The migrated JSON resources already have searchable tables; upload a flat CSV to replace their table data. Migration/API imports may have no DataPusher upload log. Dictionary type overrides apply on the next import.
+
 ## Verification
 
 For the existing local test instance with the migrated 11A workbooks:
@@ -51,9 +57,12 @@ For the existing local test instance with the migrated 11A workbooks:
 npm ci
 npm run verify:browser
 npm run verify:portal
+npm run verify:resources
 ```
 
 `verify:browser` checks the imported organization, three table previews, and searches. `verify:portal` additionally checks anonymous/private access, CSRF, create/edit/upload flows, CSV export, API-token management, member/editor/outside-user permissions, desktop/mobile rendering, and JavaScript/server errors. It creates temporary QA users and data on localhost:5100 and cleans them up afterward. Do not point this test at production. Screenshots are written to ignored `frontend/test-results/`.
+
+`verify:resources` checks metadata preservation, dictionary edits without changing rows or unique keys, view management and embedded previews, file replacement and DataPusher import/logs, editor permissions, and mobile layout. It creates and deletes temporary QA records on the local instance.
 
 ## Update an existing deployment
 

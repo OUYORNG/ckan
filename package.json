@@ -6,7 +6,8 @@
     "verify:browser": "node migrations/11-upload/verify_browser.cjs",
     "dev:ui": "npm --prefix frontend run dev",
     "build:ui": "npm --prefix frontend run build",
-    "verify:portal": "node frontend/tests/portal.cjs"
+    "verify:portal": "node frontend/tests/portal.cjs",
+    "verify:resources": "node frontend/tests/resource-management.cjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"

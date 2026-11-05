@@ -71,7 +71,7 @@ export interface SearchResult {
 export interface DataField {
   id: string;
   type: string;
-  info?: { label?: string; notes?: string };
+  info?: { label?: string; notes?: string; type_override?: string };
 }
 export interface DataTable {
   total: number;
@@ -94,4 +94,34 @@ export interface Token {
 export interface License {
   id: string;
   title: string;
+}
+
+export interface UploadStatus {
+  status: string;
+  last_updated?: string;
+  error?: unknown;
+  logs: { timestamp?: string; level?: string; message?: string }[];
+  datastore_active: boolean;
+  row_count: number | null;
+  field_count: number;
+  can_import: boolean;
+  datapusher_enabled: boolean;
+}
+export interface ResourceView {
+  id: string;
+  resource_id: string;
+  title: string;
+  description?: string;
+  view_type: string;
+  responsive?: boolean;
+  ellipsis_length?: number;
+  [key: string]: unknown;
+}
+export interface ViewType {
+  name: string;
+  title: string;
+}
+export interface DataStoreInfo {
+  fields: DataField[];
+  meta: { count: number; id: string; size?: number };
 }

@@ -12,10 +12,12 @@ import {
   Columns3,
   Database,
   FileSpreadsheet,
+  Pencil,
   Search,
   Table2,
 } from "lucide-react";
-import { useAction } from "./api";
+import { request, useAction, useData } from "./api";
+import { useSession } from "./session";
 import {
   DownloadLink,
   EmptyState,
@@ -78,6 +80,12 @@ function ResourceDetail({
   resource: Resource;
   onRefresh: () => void;
 }) {
+  const { session } = useSession();
+  const permissions = useData<{ edit: boolean }>(
+    "resource-edit-" + resource.id + session?.user?.id,
+    () => request(`dataset/${encodeURIComponent(dataset.id)}/permissions`),
+    Boolean(session?.user),
+  );
   const [tab, setTab] = useState("table");
   const [q, setQ] = useState("");
   const [draft, setDraft] = useState("");
@@ -122,7 +130,20 @@ function ResourceDetail({
               "Explore this resource and its supporting information."}
           </p>
         </div>
-        <DownloadLink url={resource.url}>Original file</DownloadLink>
+        <div className="resource-header-actions">
+          {permissions.data?.edit && (
+            <Link
+              className="button button-dark"
+              to={`/dataset/${dataset.name}/resource/${resource.id}/edit`}
+            >
+              <Pencil size={15} />
+              Edit resource
+            </Link>
+          )}
+          <DownloadLink url={resource.url} className="button button-outline">
+            Original file
+          </DownloadLink>
+        </div>
       </div>
       {resource.datastore_active ? (
         <>

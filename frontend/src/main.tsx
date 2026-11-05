@@ -25,6 +25,7 @@ import {
   Organizations,
 } from "./catalog";
 import { ResourcePage } from "./resource";
+import { ResourceManagement } from "./resource-manage";
 import {
   Account,
   Administration,
@@ -65,6 +66,30 @@ function App() {
             <Route
               path="/dataset/:id/resource/:resourceId"
               element={<ResourcePage />}
+            />
+            <Route
+              path="/dataset/:id/resource/:resourceId/edit"
+              element={<ResourceManagement />}
+            />
+            <Route
+              path="/dataset/:id/resource_edit/:resourceId"
+              element={<ResourceManagement />}
+            />
+            <Route
+              path="/dataset/:id/resource_data/:resourceId"
+              element={<ResourceManagement />}
+            />
+            <Route
+              path="/dataset/:id/resource_upload_log/:resourceId"
+              element={<ResourceManagement />}
+            />
+            <Route
+              path="/dataset/:id/dictionary/:resourceId"
+              element={<ResourceManagement />}
+            />
+            <Route
+              path="/dataset/:id/resource/:resourceId/views"
+              element={<ResourceManagement />}
             />
             <Route path="/organization" element={<Organizations />} />
             <Route path="/organization/new" element={<OrganizationEditor />} />
