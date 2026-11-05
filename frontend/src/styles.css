@@ -3563,3 +3563,41 @@ main {
     font-size: 11px;
   }
 }
+
+.custom-metadata {
+  display: grid;
+  gap: 16px;
+}
+.custom-metadata > p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.custom-metadata-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  gap: 12px;
+  align-items: end;
+}
+.custom-metadata-row > button {
+  margin-bottom: 2px;
+}
+.editor-form .checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+.editor-form .checkbox-label input {
+  width: auto;
+}
+@media (max-width: 640px) {
+  .custom-metadata-row {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .custom-metadata-row > button {
+    justify-self: start;
+  }
+}

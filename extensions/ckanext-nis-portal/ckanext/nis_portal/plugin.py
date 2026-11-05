@@ -158,6 +158,14 @@ def make_blueprint():
             if request.mimetype == "multipart/form-data":
                 data = request.form.to_dict()
                 data.update(request.files)
+                if action in {"organization_create", "organization_patch"} and "extras" in data:
+                    from json import loads
+                    try:
+                        data["extras"] = loads(data["extras"])
+                    except (ValueError, TypeError):
+                        return error("Invalid custom metadata.")
+                    if not isinstance(data["extras"], list) or any(not isinstance(field, dict) or not isinstance(field.get("key"), str) or not isinstance(field.get("value"), str) for field in data["extras"]):
+                        return error("Custom metadata must contain text keys and values.")
             else:
                 data = request.get_json(silent=True) or {}
         try:

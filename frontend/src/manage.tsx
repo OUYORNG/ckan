@@ -308,6 +308,84 @@ function WorkspaceContent() {
   );
 }
 
+type ExtraField = { key: string; value: string };
+function CustomMetadata({
+  fields,
+  onChange,
+}: {
+  fields: ExtraField[];
+  onChange: (fields: ExtraField[]) => void;
+}) {
+  return (
+    <section className="custom-metadata">
+      <h2>Custom metadata</h2>
+      <p className="muted">
+        Additional information stored with this record. Existing source and
+        migration references are included below.
+      </p>
+      {fields.map((field, index) => (
+        <div className="custom-metadata-row" key={index}>
+          <label>
+            Key
+            <input
+              aria-label={`Metadata key ${index + 1}`}
+              required
+              value={field.key}
+              onChange={(event) =>
+                onChange(
+                  fields.map((item, i) =>
+                    i === index ? { ...item, key: event.target.value } : item,
+                  ),
+                )
+              }
+            />
+          </label>
+          <label>
+            Value
+            <textarea
+              aria-label={`Metadata value ${index + 1}`}
+              rows={2}
+              value={field.value}
+              onChange={(event) =>
+                onChange(
+                  fields.map((item, i) =>
+                    i === index ? { ...item, value: event.target.value } : item,
+                  ),
+                )
+              }
+            />
+          </label>
+          <button
+            type="button"
+            className="button button-outline"
+            aria-label={`Remove metadata ${index + 1}`}
+            onClick={() => onChange(fields.filter((_, i) => i !== index))}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="button button-outline"
+        onClick={() => onChange([...fields, { key: "", value: "" }])}
+      >
+        <Plus size={16} />
+        Add metadata
+      </button>
+    </section>
+  );
+}
+function validateMetadata(fields: ExtraField[]) {
+  const keys = fields.map((field) => field.key.trim());
+  if (keys.some((key) => !key) || new Set(keys).size !== keys.length)
+    throw new Error("Custom metadata keys must be nonempty and unique.");
+  return fields.map((field, index) => ({
+    key: keys[index],
+    value: field.value,
+  }));
+}
+
 export function DatasetEditor() {
   return (
     <div className="page">
@@ -339,7 +417,14 @@ function DatasetEditorContent() {
     visibility: "private",
     license_id: "notspecified",
     tags: "",
+    url: "",
+    version: "",
+    author: "",
+    author_email: "",
+    maintainer: "",
+    maintainer_email: "",
   });
+  const [extras, setExtras] = useState<ExtraField[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error>();
   useEffect(() => {
@@ -353,7 +438,14 @@ function DatasetEditorContent() {
         visibility: data.private ? "private" : "public",
         license_id: data.license_id || "notspecified",
         tags: data.tags.map((tag) => tag.name).join(", "),
+        url: data.url || "",
+        version: data.version || "",
+        author: data.author || "",
+        author_email: data.author_email || "",
+        maintainer: data.maintainer || "",
+        maintainer_email: data.maintainer_email || "",
       });
+      setExtras(data.extras || []);
     }
   }, [existing.data]);
   async function submit(event: FormEvent) {
@@ -372,6 +464,13 @@ function DatasetEditorContent() {
           owner_org: form.owner_org,
           private: form.visibility === "private",
           license_id: form.license_id,
+          url: form.url,
+          version: form.version,
+          author: form.author,
+          author_email: form.author_email,
+          maintainer: form.maintainer,
+          maintainer_email: form.maintainer_email,
+          extras: validateMetadata(extras),
           tags: [
             ...new Set(
               form.tags
@@ -513,6 +612,71 @@ function DatasetEditorContent() {
             />
             <small>Separate tags with commas.</small>
           </label>
+          <h2>Source and contacts</h2>
+          <label>
+            Source URL
+            <input
+              aria-label="Source URL"
+              type="url"
+              value={form.url}
+              onChange={(e) => setForm({ ...form, url: e.target.value })}
+              placeholder="https://example.gov.kh/data"
+            />
+          </label>
+          <label>
+            Version
+            <input
+              aria-label="Version"
+              value={form.version}
+              onChange={(e) => setForm({ ...form, version: e.target.value })}
+              placeholder="1.0"
+            />
+          </label>
+          <div className="form-row">
+            <label>
+              Author
+              <input
+                aria-label="Author"
+                value={form.author}
+                onChange={(e) => setForm({ ...form, author: e.target.value })}
+              />
+            </label>
+            <label>
+              Author email
+              <input
+                aria-label="Author email"
+                type="email"
+                value={form.author_email}
+                onChange={(e) =>
+                  setForm({ ...form, author_email: e.target.value })
+                }
+              />
+            </label>
+          </div>
+          <div className="form-row">
+            <label>
+              Maintainer
+              <input
+                aria-label="Maintainer"
+                value={form.maintainer}
+                onChange={(e) =>
+                  setForm({ ...form, maintainer: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Maintainer email
+              <input
+                aria-label="Maintainer email"
+                type="email"
+                value={form.maintainer_email}
+                onChange={(e) =>
+                  setForm({ ...form, maintainer_email: e.target.value })
+                }
+              />
+            </label>
+          </div>
+          <CustomMetadata fields={extras} onChange={setExtras} />
           <div className="form-actions">
             <Link
               className="button button-outline"
@@ -718,16 +882,27 @@ function OrganizationEditorContent() {
     { id, include_datasets: false, include_users: false },
     Boolean(id),
   );
-  const [form, setForm] = useState({ name: "", title: "", description: "" });
+  const [form, setForm] = useState({
+    name: "",
+    title: "",
+    description: "",
+    image_url: "",
+  });
+  const [extras, setExtras] = useState<ExtraField[]>([]);
+  const [image, setImage] = useState<File>();
+  const [clearImage, setClearImage] = useState(false);
   const [error, setError] = useState<Error>();
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (existing.data)
+    if (existing.data) {
       setForm({
         name: existing.data.name,
         title: existing.data.title,
         description: existing.data.description || "",
+        image_url: existing.data.image_url || "",
       });
+      setExtras(existing.data.extras || []);
+    }
   }, [existing.data]);
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -735,9 +910,29 @@ function OrganizationEditorContent() {
     setBusy(true);
     setError(undefined);
     try {
+      const payload = new FormData();
+      Object.entries({ ...form, ...(id ? { id } : {}) }).forEach(
+        ([key, value]) => payload.set(key, value),
+      );
+      const savedExtras = validateMetadata(extras);
+      const removedExtras = (existing.data?.extras || [])
+        .filter(
+          (field) => !savedExtras.some((current) => current.key === field.key),
+        )
+        .map((field) => ({
+          key: field.key,
+          value: field.value,
+          deleted: true,
+        }));
+      payload.set("extras", JSON.stringify([...savedExtras, ...removedExtras]));
+      if (image) payload.set("image_upload", image);
+      if (clearImage && !image) {
+        payload.set("clear_upload", "true");
+        payload.set("image_url", "");
+      }
       const organization = await mutate<Organization>(
         id ? "organization_patch" : "organization_create",
-        { ...form, ...(id ? { id } : {}) },
+        payload,
         session.csrf_token,
       );
       await refresh();
@@ -807,6 +1002,47 @@ function OrganizationEditorContent() {
             placeholder="Describe your organization and the data it publishes."
           />
         </label>
+        <h2>Organization logo</h2>
+        {!clearImage && existing.data?.image_display_url && (
+          <OrgAvatar org={existing.data} large />
+        )}
+        <label>
+          Logo URL
+          <input
+            aria-label="Logo URL"
+            value={form.image_url}
+            onChange={(e) => {
+              setForm({ ...form, image_url: e.target.value });
+              setClearImage(false);
+            }}
+            placeholder="https://example.gov.kh/logo.png"
+          />
+          <small>Use an image URL, or upload a replacement below.</small>
+        </label>
+        <label>
+          Upload logo
+          <input
+            aria-label="Upload logo"
+            type="file"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            onChange={(e) => {
+              setImage(e.target.files?.[0]);
+              setClearImage(false);
+            }}
+          />
+        </label>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={clearImage}
+            onChange={(e) => {
+              setClearImage(e.target.checked);
+              setImage(undefined);
+            }}
+          />
+          Remove current logo
+        </label>
+        <CustomMetadata fields={extras} onChange={setExtras} />
         <div className="form-actions">
           <Link className="button button-outline" to="/organization">
             Cancel

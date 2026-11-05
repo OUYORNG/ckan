@@ -13,6 +13,8 @@ export interface Organization {
   display_name?: string;
   description?: string;
   image_display_url?: string;
+  image_url?: string;
+  extras?: { key: string; value: string }[];
   package_count?: number;
   capacity?: string;
   users?: User[];
@@ -54,7 +56,11 @@ export interface Dataset {
   metadata_created?: string;
   license_title?: string;
   license_id?: string;
+  url?: string;
+  version?: string;
   author?: string;
+  author_email?: string;
+  maintainer_email?: string;
   maintainer?: string;
   extras?: { key: string; value: string }[];
 }

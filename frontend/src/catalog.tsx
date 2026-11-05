@@ -864,7 +864,15 @@ export function DatasetDetail() {
                   ["License", dataset.license_title || "Not specified"],
                   ["Created", date(dataset.metadata_created)],
                   ["Last updated", date(dataset.metadata_modified)],
+                  ["Source", dataset.url || "Not specified"],
+                  ["Version", dataset.version || "Not specified"],
                   ["Author", dataset.author || "Not specified"],
+                  ["Author email", dataset.author_email || "Not specified"],
+                  ["Maintainer", dataset.maintainer || "Not specified"],
+                  [
+                    "Maintainer email",
+                    dataset.maintainer_email || "Not specified",
+                  ],
                   ...(dataset.extras || []).map((item) => [
                     item.key,
                     item.value,
