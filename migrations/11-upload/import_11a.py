@@ -1,14 +1,16 @@
-"""Import the three 11A workbooks into the local CKAN test portal."""
+"""Import the three 11A workbooks into a configured CKAN instance."""
 
 import hashlib
 import csv
 import io
 import json
+import os
 import re
 import subprocess
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import openpyxl
 import requests
@@ -16,7 +18,11 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = Path(__file__).resolve().parent
-BASE = "http://localhost:5100"
+DEFAULT_BASE = "http://localhost:5100"
+BASE = os.environ.get("CKAN_URL", DEFAULT_BASE).strip().rstrip("/")
+if BASE != DEFAULT_BASE:
+    target_name = re.sub(r"[^a-zA-Z0-9.-]+", "-", urlparse(BASE).netloc)
+    OUT = OUT / "targets" / (target_name + "-" + hashlib.sha256(BASE.encode()).hexdigest()[:8])
 MARKER = "11-upload-11a-v1"
 ORG = "ministry-of-information"
 DIGITS = str.maketrans("០១២៣៤៥៦៧៨៩", "0123456789")
@@ -124,20 +130,41 @@ def companies(filename, code, header_row, code_row, start_row, offset, english):
 
 
 def main():
+    parsed = urlparse(BASE)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise SystemExit("CKAN_URL must be the CKAN site URL, such as https://data.example.com, without credentials or query parameters.")
+    session = requests.Session()
+    try:
+        status_response = session.get(BASE + "/api/3/action/status_show", timeout=20)
+        status_response.raise_for_status()
+        status = status_response.json()
+    except (requests.RequestException, ValueError):
+        raise SystemExit(f"Cannot reach the CKAN API at {BASE}. Set CKAN_URL to the working site URL and check that CKAN is running.")
+    if not status.get("success"):
+        raise SystemExit(f"CKAN status check failed at {BASE}; no data was imported.")
+    token = os.environ.get("CKAN_API_TOKEN", "").strip()
+    if not token:
+        if parsed.hostname not in ("localhost", "127.0.0.1", "::1") or parsed.port != 5100:
+            raise SystemExit("Set CKAN_API_TOKEN to an API token from your target CKAN administrator account. Docker token generation is only used for the local port-5100 setup.")
+        try:
+            result = subprocess.run([str(ROOT / "ckan-docker/local-ckan"), "exec", "-T", "ckan", "ckan", "-c", "/srv/app/ckan.ini", "user", "token", "add", "ckan_admin", MARKER], capture_output=True, text=True, check=True)
+            token = next(line.strip() for line in result.stdout.splitlines() if line.strip().startswith("eyJ"))
+        except (OSError, subprocess.CalledProcessError, StopIteration):
+            raise SystemExit("Could not generate a local administrator token. Set CKAN_API_TOKEN to an existing administrator API token.")
+    session.headers["Authorization"] = token
     plans = [summary(), companies("11A2.xlsx", "11A2", 3, 4, 5, 2, "Television and radio companies"),
              companies("11A3.xlsx", "11A3", 2, 3, 4, 1, "Press companies")]
     assert sum(len(p["records"]) for p in plans) == 66
+    OUT.mkdir(parents=True, exist_ok=True)
     for plan in plans:
         plan["sha256"] = hashlib.sha256(plan["path"].read_bytes()).hexdigest()
         (OUT / (plan["name"] + ".json")).write_text(json.dumps(plan["records"], ensure_ascii=False, indent=2) + "\n")
-    result = subprocess.run([str(ROOT / "ckan-docker/local-ckan"), "exec", "-T", "ckan", "ckan", "-c", "/srv/app/ckan.ini", "user", "token", "add", "ckan_admin", MARKER], capture_output=True, text=True, check=True)
-    token = next(line.strip() for line in result.stdout.splitlines() if line.strip().startswith("eyJ"))
-    session = requests.Session()
-    session.headers["Authorization"] = token
-
     def action(name, data, missing_ok=False):
         response = session.post(BASE + "/api/3/action/" + name, json=data, timeout=60)
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError:
+            raise RuntimeError(f"{name}: expected CKAN JSON, received HTTP {response.status_code}. Check CKAN_URL and proxy settings.") from None
         if not payload.get("success"):
             if missing_ok and payload.get("error", {}).get("__type") == "Not Found Error":
                 return None
@@ -152,9 +179,9 @@ def main():
     organization = action("organization_show", {"id": ORG}, missing_ok=True)
     if not organization:
         organization = action("organization_create", {"name": ORG, "title": "ក្រសួងព័ត៌មាន / Ministry of Information",
-            "description": "Information and media statistics imported from the supplied 11A workbooks for local CKAN testing. Source workbooks and prepared tables are available in each dataset.",
+            "description": "Information and media statistics imported from the supplied 11A workbooks. Source workbooks and prepared tables are available in each dataset.",
             "extras": [{"key": "migration_source", "value": MARKER}]})
-    report = {"imported_at": datetime.now(timezone.utc).isoformat(), "organization_url": BASE + "/organization/" + ORG,
+    report = {"imported_at": datetime.now(timezone.utc).isoformat(), "target_url": BASE, "organization_url": BASE + "/organization/" + ORG,
               "scope": "Three top-level 11A workbooks only. 24-Upload excluded.", "datasets": []}
     for plan in plans:
         existing = action("package_show", {"id": plan["name"]}, missing_ok=True)
@@ -220,6 +247,7 @@ def main():
     report["organization_search_verified"] = True
     (OUT / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
     print(report["organization_url"])
+    print(f"Report saved on this computer: {OUT / 'report.json'}")
 
 
 if __name__ == "__main__":

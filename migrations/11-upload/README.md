@@ -49,3 +49,30 @@ npm run verify:browser
 ```
 
 The importer uses source-row keys to upsert records and reuses existing migration resources. It does not delete source rows if a future workbook becomes shorter; a count mismatch stops verification for review.
+
+## Production or another CKAN server
+
+The importer connects through the CKAN HTTP API. Set `CKAN_URL` to the actual site URL (without `/api`) and `CKAN_API_TOKEN` to a token created by an administrator on that same site. With a supplied token, the importer does not invoke Docker or assume a container/project name. The default localhost:5100 setup can still generate its token through the local Docker helper.
+
+On the production server, from the repository root, after copying the three original workbooks into `11-upload/`:
+
+```bash
+git pull --ff-only
+source .venv/bin/activate
+pip install -r requirements.txt
+
+export CKAN_URL='https://YOUR_CKAN_DOMAIN'
+curl --fail --silent --show-error "$CKAN_URL/api/3/action/status_show"
+read -r -s -p 'Production CKAN API token: ' CKAN_API_TOKEN
+echo
+export CKAN_API_TOKEN
+
+python migrations/11-upload/import_11a.py
+unset CKAN_API_TOKEN
+```
+
+Create a token in the target site's user profile under **API Tokens**. Do not paste it into Git, documentation, or a command saved in shell history. The server needs DataStore and the `datatables_view` plugin configured. Automatic DataPusher parsing should exclude XLSX originals, as in this project's CSV-only configuration.
+
+Reports and prepared files for non-default URLs are stored locally under `migrations/11-upload/targets/<target>/`, not in cloud storage. The importer prints the report path. This keeps another server's snapshot separate from the local test instance.
+
+Before running, use your normal PostgreSQL, DataStore, and uploaded-file backup process. `before-import.json` is a limited catalog metadata snapshot, not a full backup. The import is not transactional: an error can leave completed earlier datasets in place. Correct the problem and rerun to reuse the migration's datasets and resources. It always sets the imported datasets private.

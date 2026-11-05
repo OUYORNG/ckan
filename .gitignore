@@ -16,6 +16,7 @@
 /migrations/11-upload/*.csv
 /migrations/11-upload/*.xlsx
 /migrations/11-upload/*.log
+/migrations/11-upload/targets/
 
 # Local verification tools and downloaded dependencies
 /.local-check/
