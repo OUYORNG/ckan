@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")"
+exec docker compose -p ckan-test -f docker-compose.yml -f compose.local.yml "$@"

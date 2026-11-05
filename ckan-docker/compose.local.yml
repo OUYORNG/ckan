@@ -1,0 +1,25 @@
+services:
+  ckan:
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
+    volumes:
+      - ../ckan:/srv/app/src/ckan
+    ports:
+      - "127.0.0.1:5100:5000"
+    healthcheck:
+      interval: 10s
+      start_period: 120s
+  solr:
+    environment:
+      SOLR_HEAP: 512m
+    healthcheck:
+      interval: 10s
+  db:
+    healthcheck:
+      interval: 10s
+  redis:
+    healthcheck:
+      interval: 10s
+  datapusher:
+    healthcheck:
+      interval: 10s

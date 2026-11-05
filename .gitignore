@@ -1,0 +1,61 @@
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+/ckan-docker/nginx/setup/ckan-local.crt
+
+# Private source data and generated migration artifacts
+/11-upload/
+/migrations/11-upload/*.json
+/migrations/11-upload/*.png
+/migrations/11-upload/*.csv
+/migrations/11-upload/*.xlsx
+/migrations/11-upload/*.log
+
+# Local verification tools and downloaded dependencies
+/.local-check/
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+playwright-report/
+test-results/
+
+# Runtime data and build output
+*.log
+*.pid
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+data/
+storage/
+logs/
+dist/
+build/
+*.egg-info/
+
+# Editor and operating system files
+.DS_Store
+._*
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Nested upstream Git metadata; CKAN itself is a registered submodule
+/ckan-docker/.git/
+/ckan-docker/.github/
