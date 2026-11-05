@@ -45,7 +45,7 @@ The server configuration, database maintenance, and extension installation remai
 
 ## Resource management
 
-Dataset editing also includes the source URL, version, author/maintainer names and emails, and editable custom metadata. Existing custom metadata is loaded into the form, including migration provenance. Dataset information displays these fields after saving. Organization settings support a logo URL or image upload, logo removal, and custom metadata; organization changes remain subject to CKAN administrator permissions.
+Dataset editing also includes the source URL, version, author/maintainer names and emails, and editable custom metadata. Existing custom metadata is loaded into the form, including migration provenance. Dataset information displays these fields after saving. The header’s **Edit organization** button opens organization settings, following the dataset edit pattern. Settings support a logo URL or image upload, logo removal, and custom metadata; organization changes remain subject to CKAN administrator permissions.
 
 Resource editors can open **Edit resource** from a resource page. Five tabs provide resource name, description, format and file editing; DataStore uploads and imports; the latest DataPusher upload log; field labels, descriptions and import type overrides; and preview view creation, configuration, ordering and deletion. CKAN enforces editor permissions for every operation.
 

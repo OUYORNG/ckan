@@ -711,16 +711,31 @@ export function OrganizationDetail({ topic = false }: { topic?: boolean }) {
       <div className="organization-hero">
         <OrgAvatar org={org} large />
         <div>
-          <span className="eyebrow">
-            {topic ? "TOPIC COLLECTION" : "PUBLISHING ORGANIZATION"}
-          </span>
-          <h1>{org.title || org.name}</h1>
+          <div className="organization-heading-label">
+            <span className="eyebrow">
+              {topic ? "TOPIC COLLECTION" : "PUBLISHING ORGANIZATION"}
+            </span>
+            {own?.capacity && (
+              <span className="role-badge">{own.capacity}</span>
+            )}
+          </div>
+          <div className="dataset-title-row">
+            <h1>{org.title || org.name}</h1>
+            {!topic &&
+              (own?.capacity === "admin" || session?.user?.sysadmin) && (
+                <Link
+                  className="button button-outline"
+                  to={"/organization/edit/" + org.name}
+                >
+                  Edit organization <ArrowUpRight size={15} />
+                </Link>
+              )}
+          </div>
           <p>
             {plain(org.description) ||
               "Explore datasets and resources from this organization."}
           </p>
         </div>
-        {own?.capacity && <span className="role-badge">{own.capacity}</span>}
       </div>
       <div className="tabbar">
         <Link
@@ -736,7 +751,6 @@ export function OrganizationDetail({ topic = false }: { topic?: boolean }) {
               <UsersIcon />
               Members
             </Link>
-            <Link to={"/organization/edit/" + org.name}>Settings</Link>
           </>
         )}
       </div>

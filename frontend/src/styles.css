@@ -3752,3 +3752,16 @@ main {
 .dataset-rows th {
   position: relative;
 }
+
+.organization-heading-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+.organization-heading-label .eyebrow {
+  margin-bottom: 0;
+}
+.organization-heading-label .role-badge {
+  margin-left: 0;
+}

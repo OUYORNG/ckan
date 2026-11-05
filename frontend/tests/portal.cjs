@@ -86,7 +86,9 @@ async function login(context, name, password) { const value = await session(cont
   let organization = await native('organization_show', { id: org });
   assert.equal(organization.image_url, 'https://example.test/logo.png');
   assert.deepEqual(organization.extras.map(({ key, value }) => ({ key, value })), [{ key: 'department', value: 'ព័ត៌មាន / Information' }]);
-  await page.goto(base + '/organization/edit/' + org, { waitUntil: 'networkidle' });
+  assert.equal(await page.getByRole('link', { name: 'Settings', exact: true }).count(), 0);
+  await page.getByRole('link', { name: 'Edit organization', exact: true }).click();
+  await page.waitForURL('**/organization/edit/' + org);
   await page.getByLabel('Upload logo').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6XGQAAAAASUVORK5CYII=', 'base64') });
   await page.getByRole('button', { name: 'Save changes', exact: true }).click();
   await page.waitForURL('**/organization/' + org);
@@ -185,6 +187,10 @@ async function login(context, name, password) { const value = await session(cont
       await write(context, 'organization_patch', { id: org, extras: [{ key: 'unauthorized', value: 'no' }] }, 403);
       const members = await context.request.get(base + '/portal/api/organizations/' + org + '/members');
       assert.equal(members.status(), 403);
+      const organizationPage = await context.newPage();
+      await organizationPage.goto(base + '/organization/' + org, { waitUntil: 'networkidle' });
+      assert.equal(await organizationPage.getByRole('link', { name: 'Edit organization', exact: true }).count(), 0);
+      await organizationPage.close();
       const userList = await context.request.get(base + '/portal/api/users');
       assert.equal(userList.status(), 403);
     } finally { await context.close(); }
@@ -215,6 +221,13 @@ async function login(context, name, password) { const value = await session(cont
   await page.getByLabel('Metadata key 1', { exact: true }).waitFor();
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Mobile metadata editor must not overflow.');
   await page.screenshot({ path: path.join(output, 'dataset-metadata-mobile.png'), fullPage: true });
+  await page.goto(base + '/organization/' + org, { waitUntil: 'networkidle' });
+  await page.getByRole('link', { name: 'Edit organization', exact: true }).waitFor();
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'Mobile organization header must not overflow.');
+  await page.screenshot({ path: path.join(output, 'organization-edit-mobile.png'), fullPage: true });
+  await page.getByRole('link', { name: 'Edit organization', exact: true }).click();
+  await page.waitForURL('**/organization/edit/' + org);
+  assert.equal(await page.getByLabel('Organization title').inputValue(), 'Portal QA ' + suffix);
   assert.deepEqual(errors, [], 'Browser/server errors');
   console.log('Desktop/mobile navigation, layout, and browser error checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => {
