@@ -1,6 +1,6 @@
 # Excel imports
 
-Open **Edit organization → Excel import templates** to configure sheet names, resource information, header/data rows, and typed columns. Column numbers start at 1. Optional cell references supply a constant column value or resource metadata. A template may instead select the 11A1/11A2/11A3 preset. Save a new revision to update future imports; queued imports retain their snapshot.
+Open **Edit organization → Excel import templates tab** to configure sheet names, resource information, header/data rows, and typed columns. The Organization info tab edits the organization; the Excel tab lists only that organization’s templates in the shared dataset table layout. Search by matching code or resource information, sort, page, and edit rows. Matching rules and generated resource information have separate table columns and editor sections. The same sheet code can be configured independently in different organizations. Column numbers start at 1. Optional cell references supply a constant column value or resource metadata. A template may instead select the 11A1/11A2/11A3 preset. Save a new revision to update future imports; queued imports retain their snapshot.
 
 Upload an XLSX under **Dataset → Add resource**, leaving **Automatically generate searchable data** selected. Existing original XLSX resources have **Generate searchable data**. External URLs are not fetched. Maximum compressed size is 30 MB, expanded size 200 MB, 100 sheets and 500,000 cells per sheet; jobs time out after ten minutes.
 
@@ -33,6 +33,7 @@ Install openpyxl in your local Python environment, then run:
 ```sh
 python3 -m unittest discover -s extensions/ckanext-nis-portal/tests -v
 node frontend/tests/excel-import.cjs
+node frontend/tests/template-organizations.cjs
 npm run verify:portal
 ```
 

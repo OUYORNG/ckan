@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { LayoutGrid, List, Pencil } from "lucide-react";
 import { Link } from "react-router-dom";
 import { date, plain } from "./api";
@@ -39,6 +40,21 @@ export function DatasetLayoutToggle({
     </div>
   );
 }
+export function DatasetTable({
+  children,
+  label = "Datasets",
+}: {
+  children: ReactNode;
+  label?: string;
+}) {
+  return (
+    <div className="dataset-rows-scroll">
+      <table className="dataset-rows" aria-label={label}>
+        {children}
+      </table>
+    </div>
+  );
+}
 export function DatasetRows({
   datasets,
   selected,
@@ -53,88 +69,86 @@ export function DatasetRows({
   disabled?: boolean;
 }) {
   return (
-    <div className="dataset-rows-scroll">
-      <table className="dataset-rows">
-        <thead>
-          <tr>
+    <DatasetTable>
+      <thead>
+        <tr>
+          {onSelect && (
+            <th scope="col">
+              <span className="sr-only">Selection</span>
+            </th>
+          )}
+          <th scope="col">Dataset</th>
+          <th scope="col">Visibility</th>
+          <th scope="col">Resources</th>
+          <th scope="col">Updated</th>
+          {edit && (
+            <th scope="col">
+              <span className="sr-only">Actions</span>
+            </th>
+          )}
+        </tr>
+      </thead>
+      <tbody>
+        {datasets.map((dataset) => (
+          <tr className="dataset-entry" key={dataset.id}>
             {onSelect && (
-              <th scope="col">
-                <span className="sr-only">Selection</span>
-              </th>
+              <td>
+                <input
+                  type="checkbox"
+                  disabled={disabled}
+                  aria-label={`Select ${dataset.title || dataset.name}`}
+                  checked={selected?.has(dataset.id) || false}
+                  onChange={(event) =>
+                    onSelect(dataset.id, event.target.checked)
+                  }
+                />
+              </td>
             )}
-            <th scope="col">Dataset</th>
-            <th scope="col">Visibility</th>
-            <th scope="col">Resources</th>
-            <th scope="col">Updated</th>
+            <td className="dataset-row-title">
+              <h3>
+                <Link to={"/dataset/" + dataset.name}>
+                  {dataset.title || dataset.name}
+                </Link>
+              </h3>
+              <p>
+                {plain(dataset.notes) ||
+                  dataset.organization?.title ||
+                  dataset.name}
+              </p>
+              <div className="card-formats">
+                {[
+                  ...new Set(
+                    dataset.resources
+                      .map((resource) => resource.format.toUpperCase())
+                      .filter(Boolean),
+                  ),
+                ]
+                  .slice(0, 3)
+                  .map((format) => (
+                    <FormatBadge key={format} format={format} />
+                  ))}
+              </div>
+            </td>
+            <td>
+              <PrivacyBadge private={dataset.private} />
+            </td>
+            <td>{dataset.resources.length}</td>
+            <td>{date(dataset.metadata_modified)}</td>
             {edit && (
-              <th scope="col">
-                <span className="sr-only">Actions</span>
-              </th>
+              <td>
+                <Link
+                  className="text-link"
+                  to={"/dataset/edit/" + dataset.name}
+                  aria-label={`Edit ${dataset.title || dataset.name}`}
+                >
+                  <Pencil size={14} />
+                  Edit
+                </Link>
+              </td>
             )}
           </tr>
-        </thead>
-        <tbody>
-          {datasets.map((dataset) => (
-            <tr className="dataset-entry" key={dataset.id}>
-              {onSelect && (
-                <td>
-                  <input
-                    type="checkbox"
-                    disabled={disabled}
-                    aria-label={`Select ${dataset.title || dataset.name}`}
-                    checked={selected?.has(dataset.id) || false}
-                    onChange={(event) =>
-                      onSelect(dataset.id, event.target.checked)
-                    }
-                  />
-                </td>
-              )}
-              <td className="dataset-row-title">
-                <h3>
-                  <Link to={"/dataset/" + dataset.name}>
-                    {dataset.title || dataset.name}
-                  </Link>
-                </h3>
-                <p>
-                  {plain(dataset.notes) ||
-                    dataset.organization?.title ||
-                    dataset.name}
-                </p>
-                <div className="card-formats">
-                  {[
-                    ...new Set(
-                      dataset.resources
-                        .map((resource) => resource.format.toUpperCase())
-                        .filter(Boolean),
-                    ),
-                  ]
-                    .slice(0, 3)
-                    .map((format) => (
-                      <FormatBadge key={format} format={format} />
-                    ))}
-                </div>
-              </td>
-              <td>
-                <PrivacyBadge private={dataset.private} />
-              </td>
-              <td>{dataset.resources.length}</td>
-              <td>{date(dataset.metadata_modified)}</td>
-              {edit && (
-                <td>
-                  <Link
-                    className="text-link"
-                    to={"/dataset/edit/" + dataset.name}
-                    aria-label={`Edit ${dataset.title || dataset.name}`}
-                  >
-                    <Pencil size={14} />
-                    Edit
-                  </Link>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </DatasetTable>
   );
 }

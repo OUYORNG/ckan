@@ -909,6 +909,9 @@ export function OrganizationEditor() {
 }
 function OrganizationEditorContent() {
   const { id } = useParams();
+  const [editorParams, setEditorParams] = useSearchParams();
+  const editorTab =
+    id && editorParams.get("tab") === "excel" ? "excel" : "info";
   const { session, refresh } = useSession();
   const navigate = useNavigate();
   const existing = useAction<Organization>(
@@ -996,98 +999,150 @@ function OrganizationEditorContent() {
         }
         description="Bring your team and its datasets together."
       />
-      <form className="panel editor-form narrow-panel" onSubmit={submit}>
-        <FormError error={error} />
-        <label>
-          Organization title
-          <input
-            required
-            value={form.title}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                title: e.target.value,
-                ...(!id && (!form.name || form.name === slug(form.title))
-                  ? { name: slug(e.target.value) }
-                  : {}),
-              })
-            }
-            placeholder="Full organization name"
-          />
-        </label>
-        <label>
-          URL identifier
-          <input
-            required
-            minLength={2}
-            pattern="[a-z0-9_-]+"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="organization-name"
-          />
-        </label>
-        <label>
-          Description
-          <textarea
-            aria-label="Description"
-            rows={6}
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Describe your organization and the data it publishes."
-          />
-        </label>
-        <h2>Organization logo</h2>
-        {!clearImage && existing.data?.image_display_url && (
-          <OrgAvatar org={existing.data} large />
-        )}
-        <label>
-          Logo URL
-          <input
-            aria-label="Logo URL"
-            value={form.image_url}
-            onChange={(e) => {
-              setForm({ ...form, image_url: e.target.value });
-              setClearImage(false);
-            }}
-            placeholder="https://example.gov.kh/logo.png"
-          />
-          <small>Use an image URL, or upload a replacement below.</small>
-        </label>
-        <label>
-          Upload logo
-          <input
-            aria-label="Upload logo"
-            type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp"
-            onChange={(e) => {
-              setImage(e.target.files?.[0]);
-              setClearImage(false);
-            }}
-          />
-        </label>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={clearImage}
-            onChange={(e) => {
-              setClearImage(e.target.checked);
-              setImage(undefined);
-            }}
-          />
-          Remove current logo
-        </label>
-        <CustomMetadata fields={extras} onChange={setExtras} />
-        <div className="form-actions">
-          <Link className="button button-outline" to="/organization">
-            Cancel
-          </Link>
-          <button className="button button-dark" disabled={busy}>
-            <Save size={16} />
-            {busy ? "Saving…" : id ? "Save changes" : "Create organization"}
+      {id && (
+        <div
+          className="tabbar"
+          role="tablist"
+          aria-label="Organization settings"
+        >
+          <button
+            type="button"
+            role="tab"
+            id="organization-info-tab"
+            aria-selected={editorTab === "info"}
+            aria-controls="organization-info-panel"
+            className={editorTab === "info" ? "active" : ""}
+            onClick={() => setEditorParams({ tab: "info" })}
+          >
+            Organization info
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="organization-excel-tab"
+            aria-selected={editorTab === "excel"}
+            aria-controls="organization-excel-panel"
+            className={editorTab === "excel" ? "active" : ""}
+            onClick={() => setEditorParams({ tab: "excel" })}
+          >
+            Excel import templates
           </button>
         </div>
-      </form>
-      {existing.data && <ImportTemplates organization={existing.data.id} />}
+      )}
+      <div
+        id="organization-info-panel"
+        role="tabpanel"
+        aria-labelledby={id ? "organization-info-tab" : undefined}
+        hidden={editorTab !== "info"}
+      >
+        <form className="panel editor-form narrow-panel" onSubmit={submit}>
+          <FormError error={error} />
+          <label>
+            Organization title
+            <input
+              required
+              value={form.title}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  title: e.target.value,
+                  ...(!id && (!form.name || form.name === slug(form.title))
+                    ? { name: slug(e.target.value) }
+                    : {}),
+                })
+              }
+              placeholder="Full organization name"
+            />
+          </label>
+          <label>
+            URL identifier
+            <input
+              required
+              minLength={2}
+              pattern="[a-z0-9_-]+"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="organization-name"
+            />
+          </label>
+          <label>
+            Description
+            <textarea
+              aria-label="Description"
+              rows={6}
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Describe your organization and the data it publishes."
+            />
+          </label>
+          <h2>Organization logo</h2>
+          {!clearImage && existing.data?.image_display_url && (
+            <OrgAvatar org={existing.data} large />
+          )}
+          <label>
+            Logo URL
+            <input
+              aria-label="Logo URL"
+              value={form.image_url}
+              onChange={(e) => {
+                setForm({ ...form, image_url: e.target.value });
+                setClearImage(false);
+              }}
+              placeholder="https://example.gov.kh/logo.png"
+            />
+            <small>Use an image URL, or upload a replacement below.</small>
+          </label>
+          <label>
+            Upload logo
+            <input
+              aria-label="Upload logo"
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              onChange={(e) => {
+                setImage(e.target.files?.[0]);
+                setClearImage(false);
+              }}
+            />
+          </label>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={clearImage}
+              onChange={(e) => {
+                setClearImage(e.target.checked);
+                setImage(undefined);
+              }}
+            />
+            Remove current logo
+          </label>
+          <CustomMetadata fields={extras} onChange={setExtras} />
+          <div className="form-actions">
+            <Link className="button button-outline" to="/organization">
+              Cancel
+            </Link>
+            <button className="button button-dark" disabled={busy}>
+              <Save size={16} />
+              {busy ? "Saving…" : id ? "Save changes" : "Create organization"}
+            </button>
+          </div>
+        </form>
+      </div>
+      {existing.data && (
+        <div
+          id="organization-excel-panel"
+          role="tabpanel"
+          aria-labelledby="organization-excel-tab"
+          hidden={editorTab !== "excel"}
+        >
+          <ImportTemplates
+            key={existing.data.id}
+            organization={existing.data.id}
+            organizationTitle={existing.data.title || existing.data.name}
+          />
+        </div>
+      )}
     </>
   );
 }

@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { request, useData } from "./api";
 import { useSession } from "./session";
-import { ErrorState, FormError, Loading, Notice, SignedIn } from "./components";
+import {
+  EmptyState,
+  Pagination,
+  ErrorState,
+  FormError,
+  Loading,
+  Notice,
+  SignedIn,
+} from "./components";
+import { DatasetTable } from "./dataset-layout";
 import type { Dataset } from "./types";
 type Column = {
   column: number;
@@ -27,6 +37,7 @@ type Config = {
   enabled: boolean;
   preset?: string;
   revision?: number;
+  match_key?: string;
 };
 type Sheet = {
   sheet: string;
@@ -74,6 +85,7 @@ function Configuration({
 }) {
   return (
     <div className="excel-config">
+      <h3>Sheet matching</h3>
       <div className="form-row">
         <label>
           Sheet name
@@ -82,6 +94,9 @@ function Configuration({
             onChange={(e) => change({ ...value, sheet: e.target.value })}
           />
         </label>
+      </div>
+      <h3>Resource information</h3>
+      <div className="form-row">
         <label>
           Resource name
           <input
@@ -110,9 +125,11 @@ function Configuration({
           </label>
         ))}
       </div>
+      <h3>Table extraction and column matching</h3>
       <label>
         Extraction preset
         <select
+          aria-label="Extraction preset"
           value={value.preset || ""}
           onChange={(e) => change({ ...value, preset: e.target.value })}
         >
@@ -236,18 +253,38 @@ function Configuration({
     </div>
   );
 }
-export function ImportTemplates({ organization }: { organization: string }) {
+export function ImportTemplates({
+  organization,
+  organizationTitle,
+}: {
+  organization: string;
+  organizationTitle: string;
+}) {
   const { session } = useSession();
   const [error, setError] = useState<Error>();
   const [form, setForm] = useState<Config>(blank);
+  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState("asc");
+  const [page, setPage] = useState(1);
   const result = useData<Config[]>("templates-" + organization, () =>
     request("excel/templates/" + organization),
   );
+  const rows = (result.data || [])
+    .filter((t) =>
+      [t.sheet, t.name, t.description]
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(query.toLocaleLowerCase()),
+    )
+    .sort((a, b) => a.sheet.localeCompare(b.sheet) * (sort === "asc" ? 1 : -1));
   async function save() {
     if (!session) return;
     setBusy(true);
     setError(undefined);
+    setNotice("");
     try {
       await request("excel/templates/" + organization, {
         method: "POST",
@@ -257,8 +294,11 @@ export function ImportTemplates({ organization }: { organization: string }) {
         },
         body: JSON.stringify(form),
       });
-      result.reload();
+      setEditing(false);
       setForm(blank());
+      setPage(1);
+      setNotice("Template saved for " + organizationTitle + ".");
+      result.reload();
     } catch (e) {
       setError(message(e));
     } finally {
@@ -266,53 +306,176 @@ export function ImportTemplates({ organization }: { organization: string }) {
     }
   }
   return (
-    <section className="panel editor-form">
-      <h2>Excel import templates</h2>
-      <p>
-        Match worksheet codes to extraction rules and resource information. New
-        revisions apply only to future imports.
-      </p>
-      {result.error && <ErrorState error={result.error} />}
-      <div className="form-row">
-        {result.data?.map((t) => (
-          <button
-            type="button"
-            className="button button-outline"
-            key={t.id}
-            onClick={() => setForm(t)}
-          >
-            {t.sheet} · v{t.revision}
-            {t.enabled ? "" : " · disabled"}
-          </button>
-        ))}
-      </div>
-      <FormError error={error} />
-      <Configuration value={form} change={setForm} />
-      <label className="checkbox-label">
-        <input
-          type="checkbox"
-          checked={form.enabled}
-          onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-        />
-        Enabled
-      </label>
-      <div className="form-actions">
+    <section>
+      <div className="section-heading">
+        <div>
+          <h2>Excel import templates</h2>
+          <p>
+            Templates for {organizationTitle} only. Other organizations keep
+            their own templates and matching rules.
+          </p>
+        </div>
         <button
           type="button"
-          className="button button-outline"
-          onClick={() => setForm(blank())}
+          className="button button-dark"
+          onClick={() => {
+            setForm(blank());
+            setEditing(true);
+            setError(undefined);
+          }}
         >
           New template
         </button>
-        <button
-          type="button"
-          disabled={busy}
-          className="button button-dark"
-          onClick={save}
-        >
-          Save template revision
-        </button>
       </div>
+      {notice && <Notice>{notice}</Notice>}
+      <div className="results-toolbar">
+        <label className="inline-search">
+          <Search size={18} />
+          <input
+            type="search"
+            placeholder="Search sheet codes or resource names…"
+            aria-label="Search templates"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+        <strong>
+          {rows.length} template{rows.length === 1 ? "" : "s"}
+        </strong>
+        <label className="sort-control">
+          Sort by
+          <select
+            aria-label="Sort templates"
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="asc">Sheet A–Z</option>
+            <option value="desc">Sheet Z–A</option>
+          </select>
+        </label>
+      </div>
+      {result.loading ? (
+        <Loading />
+      ) : result.error ? (
+        <ErrorState error={result.error} retry={result.reload} />
+      ) : rows.length ? (
+        <>
+          <DatasetTable label="Organization import templates">
+            <thead>
+              <tr>
+                <th scope="col">Sheet matching</th>
+                <th scope="col">Resource information</th>
+                <th scope="col">Extraction</th>
+                <th scope="col">Status</th>
+                <th scope="col">Revision</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.slice((page - 1) * 10, page * 10).map((template) => (
+                <tr key={template.id}>
+                  <td className="dataset-row-title">
+                    <h3>{template.sheet}</h3>
+                    <p>
+                      Matching key:{" "}
+                      <code>{template.match_key || template.sheet}</code>
+                    </p>
+                  </td>
+                  <td className="dataset-row-title">
+                    <h3>{template.name || template.sheet}</h3>
+                    <p>{template.description || "No description"}</p>
+                  </td>
+                  <td>
+                    {template.preset ||
+                      template.columns.length + " configured columns"}
+                    <p>
+                      Header {template.header || 1} · Data from row{" "}
+                      {template.start || 2}
+                    </p>
+                  </td>
+                  <td>{template.enabled ? "Enabled" : "Disabled"}</td>
+                  <td>v{template.revision}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="button button-outline"
+                      aria-label={"Edit template " + template.sheet}
+                      onClick={() => {
+                        setForm(template);
+                        setEditing(true);
+                        setError(undefined);
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </DatasetTable>
+          <Pagination
+            count={rows.length}
+            page={page}
+            size={10}
+            onPage={setPage}
+          />
+        </>
+      ) : (
+        <EmptyState
+          title="No templates found"
+          text={
+            query
+              ? "Try another sheet code or resource name."
+              : "Add a template to configure sheet matching for this organization."
+          }
+        />
+      )}
+      {editing && (
+        <section className="panel editor-form" aria-label="Template editor">
+          <h2>{form.id ? "Edit template " + form.sheet : "New template"}</h2>
+          <p>
+            Organization: {organizationTitle}. Saving creates a new revision for
+            future imports.
+          </p>
+          <FormError error={error} />
+          <Configuration value={form} change={setForm} />
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
+            />
+            Enabled
+          </label>
+          <div className="form-actions">
+            <button
+              type="button"
+              disabled={busy}
+              className="button button-outline"
+              onClick={() => {
+                setEditing(false);
+                setError(undefined);
+              }}
+            >
+              Cancel template edit
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              className="button button-dark"
+              onClick={save}
+            >
+              Save template revision
+            </button>
+          </div>
+        </section>
+      )}
     </section>
   );
 }
