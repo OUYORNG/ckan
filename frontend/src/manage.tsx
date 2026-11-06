@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import {
   Link,
@@ -434,6 +434,14 @@ function DatasetEditorContent() {
     maintainer_email: "",
   });
   const [extras, setExtras] = useState<ExtraField[]>([]);
+  const [workbook, setWorkbook] = useState<File>();
+  const workbookInput = useRef<HTMLInputElement>(null);
+  const [autoExcel, setAutoExcel] = useState(true);
+  const [createdDataset, setCreatedDataset] = useState<Dataset>();
+  const [uploadedWorkbook, setUploadedWorkbook] = useState<{
+    file: File;
+    resource: Resource;
+  }>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Error>();
   useEffect(() => {
@@ -463,10 +471,17 @@ function DatasetEditorContent() {
     setBusy(true);
     setError(undefined);
     try {
+      if (
+        !id &&
+        workbook &&
+        (!workbook.name.toLowerCase().endsWith(".xlsx") ||
+          workbook.size > 30 * 1024 * 1024)
+      )
+        throw new Error("Choose an XLSX workbook no larger than 30 MB.");
       const dataset = await mutate<Dataset>(
-        id ? "package_patch" : "package_create",
+        id || createdDataset ? "package_patch" : "package_create",
         {
-          ...(id ? { id } : {}),
+          ...(id || createdDataset ? { id: id || createdDataset?.id } : {}),
           title: form.title,
           name: form.name,
           notes: form.notes,
@@ -491,7 +506,38 @@ function DatasetEditorContent() {
         },
         session.csrf_token,
       );
-      navigate("/dataset/" + dataset.name);
+      if (!id) setCreatedDataset(dataset);
+      if (!id && workbook) {
+        let resource =
+          uploadedWorkbook?.file === workbook
+            ? uploadedWorkbook.resource
+            : undefined;
+        if (!resource) {
+          const upload = new FormData();
+          upload.set("package_id", dataset.id);
+          upload.set("name", "Original Excel workbook");
+          upload.set("format", "XLSX");
+          upload.set("upload", workbook);
+          resource = await mutate<Resource>(
+            "resource_create",
+            upload,
+            session.csrf_token,
+          );
+          setUploadedWorkbook({ file: workbook, resource });
+        }
+        if (autoExcel) {
+          const job = await request<{ id: string }>("excel/start", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": session.csrf_token,
+            },
+            body: JSON.stringify({ resource: resource.id }),
+          });
+          navigate("/dataset/" + dataset.name + "/import/" + job.id);
+        } else
+          navigate("/dataset/" + dataset.name + "/resource/" + resource.id);
+      } else navigate("/dataset/" + dataset.name);
     } catch (error) {
       setError(asError(error));
     } finally {
@@ -522,7 +568,67 @@ function DatasetEditorContent() {
       <div className="editor-layout">
         <form className="panel editor-form" onSubmit={submit}>
           <FormError error={error} />
+          {createdDataset && error && (
+            <Notice>
+              Dataset saved. Retry to continue the upload, or{" "}
+              <Link to={"/dataset/" + createdDataset.name}>
+                open the dataset
+              </Link>
+              .
+            </Notice>
+          )}
           <h2>Dataset details</h2>
+          {!id && (
+            <section className="excel-config" aria-label="Initial Excel upload">
+              <h3>Upload Excel (optional)</h3>
+              <label className="file-dropzone">
+                <Upload size={28} />
+                <strong>{workbook?.name || "Choose an Excel workbook"}</strong>
+                <span>XLSX · up to 30 MB</span>
+                <input
+                  type="file"
+                  accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  aria-label="Dataset Excel workbook"
+                  ref={workbookInput}
+                  disabled={busy}
+                  onChange={(event) => {
+                    setWorkbook(event.target.files?.[0]);
+                    setError(undefined);
+                  }}
+                />
+              </label>
+              {workbook && (
+                <>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={autoExcel}
+                      disabled={busy}
+                      onChange={(event) => setAutoExcel(event.target.checked)}
+                    />
+                    Automatically generate searchable data
+                  </label>
+                  <button
+                    type="button"
+                    className="button button-outline"
+                    disabled={busy}
+                    onClick={() => {
+                      setWorkbook(undefined);
+                      if (workbookInput.current)
+                        workbookInput.current.value = "";
+                      setError(undefined);
+                    }}
+                  >
+                    Remove selected workbook
+                  </button>
+                </>
+              )}
+              <p>
+                The original file is preserved. Matching uses the selected
+                organization’s templates; ambiguous sheets open for review.
+              </p>
+            </section>
+          )}
           <label>
             Dataset title <span className="required">*</span>
             <input
@@ -699,7 +805,17 @@ function DatasetEditorContent() {
               ) : (
                 <Save size={16} />
               )}{" "}
-              {busy ? "Saving…" : id ? "Save changes" : "Create dataset"}
+              {busy
+                ? workbook && !id
+                  ? "Creating and importing…"
+                  : "Saving…"
+                : id
+                  ? "Save changes"
+                  : createdDataset
+                    ? "Retry upload"
+                    : workbook
+                      ? "Create dataset and upload"
+                      : "Create dataset"}
             </button>
           </div>
         </form>
@@ -721,10 +837,11 @@ function DatasetEditorContent() {
           </p>
           <hr />
           <Upload size={22} />
-          <h3>Add resources next.</h3>
+          <h3>{id ? "Manage your resources." : "Upload Excel here."}</h3>
           <p>
-            After creating the dataset, upload a file or add a link from the
-            dataset page.
+            {id
+              ? "Add or update resources from the dataset page."
+              : "Choose a workbook in this form to create the dataset and its searchable data together. You can also create the dataset first and add resources later."}
           </p>
         </aside>
       </div>

@@ -2092,6 +2092,8 @@ main {
   box-shadow: 0 1px 4px #25442e0d;
 }
 .file-dropzone {
+  display: flex;
+  flex-direction: column;
   border: 1px dashed #bed5c4;
   border-radius: 8px;
   background: #f6faf7;

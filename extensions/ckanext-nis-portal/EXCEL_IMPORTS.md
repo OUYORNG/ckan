@@ -4,7 +4,9 @@ Open **Edit organization → Excel import templates tab**. Save a sheet matching
 
 Ambiguous headings, repeated sections, possible total rows and missing formula caches pause for review. The review screen retains extraction controls for resolving those exceptions. Existing manually mapped templates continue working until saved through the simplified editor, which switches them to automatic extraction.
 
-Upload an XLSX under **Dataset → Add resource**, leaving **Automatically generate searchable data** selected. Existing original XLSX resources have **Generate searchable data**. External URLs are not fetched. Maximum compressed size is 30 MB, expanded size 200 MB, 100 sheets and 500,000 cells per sheet; jobs time out after ten minutes.
+You can upload an XLSX directly in **Share a new dataset → Upload Excel (optional)**. Creating the dataset uploads the original and starts extraction; a failed upload/import-start can be retried without creating another dataset or re-uploading the same source. Creating a dataset without a file remains supported.
+
+For an existing dataset, upload an XLSX under **Dataset → Add resource**, leaving **Automatically generate searchable data** selected. Existing original XLSX resources have **Generate searchable data**. External URLs are not fetched. Maximum compressed size is 30 MB, expanded size 200 MB, 100 sheets and 500,000 cells per sheet; jobs time out after ten minutes.
 
 The import page displays sheet states, warnings, previews and extraction controls. Unexpected, hidden or mismatched sheets require review. Explicitly exclude extra sheets, or correct their mapping and mark them reviewed, then validate again. Collision checks cannot be bypassed by confirmation. Formula cells use cached values only; missing caches require opening and saving the source in Excel before uploading a new version.
 
@@ -36,6 +38,7 @@ Install openpyxl in your local Python environment, then run:
 python3 -m unittest discover -s extensions/ckanext-nis-portal/tests -v
 node frontend/tests/excel-import.cjs
 node frontend/tests/template-organizations.cjs
+node frontend/tests/dataset-excel-upload.cjs
 npm run verify:portal
 ```
 
