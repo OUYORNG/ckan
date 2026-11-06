@@ -24,6 +24,7 @@ type Column = {
   notes?: string;
 };
 type Config = {
+  auto?: boolean;
   id?: string;
   sheet: string;
   name: string;
@@ -67,6 +68,7 @@ type History = {
   jobs: Job[];
 };
 const blank = (): Config => ({
+  auto: true,
   sheet: "",
   name: "",
   description: "",
@@ -292,7 +294,13 @@ export function ImportTemplates({
           "Content-Type": "application/json",
           "X-CSRFToken": session.csrf_token,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          id: form.id,
+          sheet: form.sheet,
+          name: form.name,
+          enabled: form.enabled,
+          auto: true,
+        }),
       });
       setEditing(false);
       setForm(blank());
@@ -392,12 +400,10 @@ export function ImportTemplates({
                     <p>{template.description || "No description"}</p>
                   </td>
                   <td>
-                    {template.preset ||
-                      template.columns.length + " configured columns"}
-                    <p>
-                      Header {template.header || 1} · Data from row{" "}
-                      {template.start || 2}
-                    </p>
+                    {template.auto ||
+                    (!template.columns.length && !template.preset)
+                      ? "Automatic column detection"
+                      : "Automatic on next save"}
                   </td>
                   <td>{template.enabled ? "Enabled" : "Disabled"}</td>
                   <td>v{template.revision}</td>
@@ -444,7 +450,28 @@ export function ImportTemplates({
             future imports.
           </p>
           <FormError error={error} />
-          <Configuration value={form} change={setForm} />
+          <label>
+            Sheet name
+            <input
+              required
+              value={form.sheet}
+              onChange={(e) => setForm({ ...form, sheet: e.target.value })}
+              placeholder="7A1"
+            />
+          </label>
+          <label>
+            Resource name
+            <input
+              required
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Name displayed for the searchable table"
+            />
+          </label>
+          <p>
+            Columns, headings and data types are detected from the uploaded
+            worksheet. Ambiguous layouts pause for review.
+          </p>
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -651,7 +678,10 @@ function ImportContent() {
                     change={(v) =>
                       setDecisions({
                         ...decisions,
-                        [sheet.sheet]: { ...decisions[sheet.sheet], config: v },
+                        [sheet.sheet]: {
+                          ...decisions[sheet.sheet],
+                          config: { ...v, auto: false },
+                        },
                       })
                     }
                   />

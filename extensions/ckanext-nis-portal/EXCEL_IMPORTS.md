@@ -1,6 +1,8 @@
 # Excel imports
 
-Open **Edit organization → Excel import templates tab** to configure sheet names, resource information, header/data rows, and typed columns. The Organization info tab edits the organization; the Excel tab lists only that organization’s templates in the shared dataset table layout. Search by matching code or resource information, sort, page, and edit rows. Matching rules and generated resource information have separate table columns and editor sections. The same sheet code can be configured independently in different organizations. Column numbers start at 1. Optional cell references supply a constant column value or resource metadata. A template may instead select the 11A1/11A2/11A3 preset. Save a new revision to update future imports; queued imports retain their snapshot.
+Open **Edit organization → Excel import templates tab**. Save a sheet matching name (for example `7A1`) and a resource name. Templates are isolated by organization. Header rows, columns, labels and data types are detected at import time; there is no column setup in the template editor. The existing 11A layouts are recognized automatically. Search, sort, page and edit templates in the shared dataset table layout.
+
+Ambiguous headings, repeated sections, possible total rows and missing formula caches pause for review. The review screen retains extraction controls for resolving those exceptions. Existing manually mapped templates continue working until saved through the simplified editor, which switches them to automatic extraction.
 
 Upload an XLSX under **Dataset → Add resource**, leaving **Automatically generate searchable data** selected. Existing original XLSX resources have **Generate searchable data**. External URLs are not fetched. Maximum compressed size is 30 MB, expanded size 200 MB, 100 sheets and 500,000 cells per sheet; jobs time out after ten minutes.
 

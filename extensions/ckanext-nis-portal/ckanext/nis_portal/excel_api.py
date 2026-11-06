@@ -44,13 +44,16 @@ def blueprint():
             data = request.get_json() or {}
             if not isinstance(data, dict): raise ValueError('Template must be an object.')
             if not isinstance(data.get('sheet'), str) or not data['sheet'].strip(): raise ValueError('Sheet name is required.')
-            if (not isinstance(data.get('columns'), list) or not data['columns']) and data.get('preset') not in ('11A1', '11A2', '11A3'): raise ValueError('Configure columns.')
+            if not isinstance(data.get('name'), str) or not data['name'].strip(): raise ValueError('Resource name is required.')
+            automatic = data.get('auto', not data.get('columns') and not data.get('preset'))
+            if automatic: data.update(columns=[], preset='')
             for existing in store.listing('template', organization['id']):
                 if existing['id'] != data.get('id') and existing.get('enabled', True) and data.get('enabled', True) and key(existing['sheet']) == key(data['sheet']): raise ValueError('Another active template matches this sheet name.')
             old = store.get(data['id']) if data.get('id') else None
             if old and (old.get('org') != organization['id'] or not any(t['id'] == old['id'] for t in store.listing('template', organization['id']))): raise ValueError('Template belongs to another organization.')
-            data = {k: data[k] for k in ('sheet','name','description','name_cell','description_cell','header','start','end','columns','enabled','preset') if k in data}
+            data = {k: data[k] for k in ('sheet','name','description','name_cell','description_cell','header','start','end','columns','enabled','preset','auto') if k in data}
             for field, default in {'columns': [], 'enabled': True, 'name': data['sheet'], 'description': '', 'header': 1, 'start': 2}.items(): data.setdefault(field, default)
+            data['auto'] = bool(automatic)
             data.update(match_key=key(data['sheet']), org=organization['id'], revision=(old or {}).get('revision', 0) + 1)
             result = store.save('template', organization['id'], data, old['id'] if old else None)
             store.save('template_revision', result['id'], result)

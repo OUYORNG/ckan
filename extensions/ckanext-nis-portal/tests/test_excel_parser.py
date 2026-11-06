@@ -37,6 +37,19 @@ class Extraction(unittest.TestCase):
         book=__import__('openpyxl').load_workbook(path);book['Hidden'].sheet_state='hidden';book['Empty'].delete_rows(1,2);book.save(path)
         result=extract(path,[self.template()]);self.assertEqual(result[1]['state'],'needs_review');self.assertEqual(result[2]['state'],'empty')
         result=extract(self.workbook(['7A1\u200b']),[self.template()]);self.assertEqual(result[0]['state'],'needs_review');self.assertTrue(any('invisible' in w for w in result[0]['warnings']))
+    def test_automatic_columns_with_named_template(self):
+        result=extract(self.workbook(['7 A1']),[{'sheet':'7A1','name':'Automatic resource','auto':True}])[0]
+        self.assertEqual(result['state'],'ready',result['warnings'])
+        self.assertEqual(result['name'],'Automatic resource')
+        self.assertEqual(result['records'][0]['name'],'កម្ពុជា')
+        self.assertEqual(result['records'][0]['value'],12)
+        self.assertEqual(result['fields'][1]['type'],'int')
+    def test_title_row_and_identifiers(self):
+        path=self.workbook(['7A1']);book=__import__('openpyxl').load_workbook(path);sheet=book.active;sheet.delete_rows(1,2)
+        sheet.append(['Report title']);sheet.append([None,None]);sheet.append(['Name','Phone']);sheet.append(['កម្ពុជា',123456]);book.save(path)
+        result=extract(path,[{'sheet':'7A1','name':'Report'}])[0]
+        self.assertEqual(result['state'],'ready',result['warnings']);self.assertEqual(result['records'][0]['source_row'],4)
+        self.assertEqual(result['records'][0]['phone'],'123456');self.assertEqual(result['fields'][1]['type'],'text')
     def test_presets(self):
         root=Path(__file__).resolve().parents[3]
         if not (root/'11-upload/11A_1.xlsx').exists(): self.skipTest('Private local 11A fixtures are not installed')
