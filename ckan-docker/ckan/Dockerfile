@@ -22,6 +22,8 @@ COPY --from=portal-ui --chown=ckan:ckan-sys /app/dist/ ${SRC_DIR}/ckanext-nis-po
 
 USER root
 
+RUN mkdir -p /nis-config && chown ckan:ckan-sys /nis-config && pip install openpyxl==3.1.5
+
 RUN pip install --no-deps --no-build-isolation ${SRC_DIR}/ckanext-nis-portal
 
 USER ckan

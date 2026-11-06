@@ -260,6 +260,7 @@ function MetadataEditor({
           Replace source file <span className="muted">(optional)</span>
           <input
             aria-label="Replace source file"
+            disabled={Boolean(resource.nis_import)}
             type="file"
             onChange={(event) => setFile(event.target.files?.[0])}
           />
@@ -392,6 +393,13 @@ function DataStoreManager({
   if (result.loading) return <Loading label="Checking DataStore" />;
   if (result.error)
     return <ErrorState error={result.error} retry={result.reload} />;
+  if (resource.nis_import)
+    return (
+      <Notice>
+        This is a versioned Excel import. Use Upload new version from the
+        dataset’s version history to change its data.
+      </Notice>
+    );
   const status = result.data!;
   return (
     <>

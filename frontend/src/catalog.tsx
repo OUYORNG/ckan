@@ -37,6 +37,7 @@ import {
   Pagination,
   PrivacyBadge,
 } from "./components";
+import { ExcelHistory } from "./excel-import";
 import { useSession } from "./session";
 import { DatasetLayoutToggle, DatasetRows } from "./dataset-layout";
 import { DatasetBulkEditor } from "./organization-datasets";
@@ -779,6 +780,7 @@ export function DatasetDetail() {
     () => request(`dataset/${encodeURIComponent(id)}/permissions`),
     Boolean(session?.user),
   );
+  const importHistory = useData<{series:{current?:string}[];jobs:{resource:string;state:string}[]}>("excel-current-"+id,()=>request("excel/dataset/"+(result.data?.id || id)),Boolean(result.data));
   const [tab, setTab] = useState("resources");
   if (result.loading)
     return (
@@ -873,7 +875,7 @@ export function DatasetDetail() {
                 </div>
                 {dataset.resources.length ? (
                   <div className="resource-list">
-                    {dataset.resources.map((resource) => (
+                    {dataset.resources.filter(resource => resource.nis_import ? importHistory.data?.series.some(series => series.current === resource.nis_import) : !importHistory.data?.jobs.some(job=>job.state==="completed" && job.resource===resource.id)).map((resource) => (
                       <article className="resource-card" key={resource.id}>
                         <div className="file-icon">
                           <FileText size={22} />
@@ -968,6 +970,7 @@ export function DatasetDetail() {
               </dl>
             </section>
           )}
+          <ExcelHistory dataset={dataset} />
         </div>
         <aside className="dataset-aside">
           <div className="info-card">

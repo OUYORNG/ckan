@@ -4,6 +4,7 @@ volumes:
   solr_data:
   pip_cache:
   site_packages:
+  excel_config:
 
 services:
 
@@ -43,6 +44,7 @@ services:
         condition: service_healthy
     volumes:
       - ckan_storage:/var/lib/ckan
+      - excel_config:/nis-config
       - pip_cache:/root/.cache/pip
       - site_packages:/usr/lib/python3.10/site-packages
     restart: unless-stopped
@@ -51,6 +53,22 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
+
+  excel-worker:
+    mem_limit: 1g
+    pids_limit: 64
+    image: ckan-test-ckan
+    platform: linux/amd64
+    entrypoint: ["/bin/sh", "-c", "ckan -c /nis-config/ckan.ini jobs worker nis-excel"]
+    env_file: [.env]
+    volumes:
+      - ckan_storage:/var/lib/ckan
+      - excel_config:/nis-config:ro
+    networks: [ckannet, dbnet, solrnet, redisnet]
+    depends_on:
+      ckan:
+        condition: service_healthy
+    restart: unless-stopped
 
   datapusher:
     platform: linux/amd64

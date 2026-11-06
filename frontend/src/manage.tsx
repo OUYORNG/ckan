@@ -34,6 +34,7 @@ import {
   Pagination,
   SignedIn,
 } from "./components";
+import { ImportTemplates } from "./excel-import";
 import { useSession } from "./session";
 import type {
   Dataset,
@@ -744,6 +745,8 @@ function ResourceUploadContent() {
   const { id = "" } = useParams();
   const { session } = useSession();
   const dataset = useAction<Dataset>("package_show", { id });
+  const [uploadParams] = useSearchParams();
+  const [autoExcel, setAutoExcel] = useState(true);
   const [mode, setMode] = useState("file");
   const [file, setFile] = useState<File>();
   const [error, setError] = useState<Error>();
@@ -763,7 +766,20 @@ function ResourceUploadContent() {
         data,
         session.csrf_token,
       );
-      navigate("/dataset/" + id + "/resource/" + resource.id);
+      if (autoExcel && file?.name.toLowerCase().endsWith(".xlsx")) {
+        const job = await request<{ id: string }>("excel/start", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": session.csrf_token,
+          },
+          body: JSON.stringify({
+            resource: resource.id,
+            series: uploadParams.get("series") || undefined,
+          }),
+        });
+        navigate("/dataset/" + id + "/import/" + job.id);
+      } else navigate("/dataset/" + id + "/resource/" + resource.id);
     } catch (error) {
       setError(asError(error));
     } finally {
@@ -823,6 +839,16 @@ function ResourceUploadContent() {
               required
               placeholder="https://example.com/data.csv"
             />
+          </label>
+        )}
+        {mode === "file" && file?.name.toLowerCase().endsWith(".xlsx") && (
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={autoExcel}
+              onChange={(e) => setAutoExcel(e.target.checked)}
+            />
+            Automatically generate searchable data
           </label>
         )}
         <label>
@@ -1061,6 +1087,7 @@ function OrganizationEditorContent() {
           </button>
         </div>
       </form>
+      {existing.data && <ImportTemplates organization={existing.data.id} />}
     </>
   );
 }

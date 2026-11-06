@@ -17,6 +17,7 @@ import {
   Table2,
 } from "lucide-react";
 import { request, useAction, useData } from "./api";
+import { GenerateExcel } from "./excel-import";
 import { useSession } from "./session";
 import {
   DownloadLink,
@@ -131,6 +132,8 @@ function ResourceDetail({
           </p>
         </div>
         <div className="resource-header-actions">
+          {permissions.data?.edit && resource.format.toLowerCase()==="xlsx" && <GenerateExcel resource={resource.id} dataset={dataset.name} />}
+
           {permissions.data?.edit && (
             <Link
               className="button button-dark"

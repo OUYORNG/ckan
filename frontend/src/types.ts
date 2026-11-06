@@ -31,6 +31,9 @@ export interface Tag {
   display_name?: string;
 }
 export interface Resource {
+  nis_import?: string;
+  nis_series?: string;
+  nis_role?: string;
   id: string;
   name: string;
   description?: string;

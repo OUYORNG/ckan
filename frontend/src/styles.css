@@ -3848,3 +3848,9 @@ main {
     display: none;
   }
 }
+
+.excel-config { display: grid; gap: 18px; }
+.excel-config fieldset { min-width: 0; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.excel-config .form-row { flex-wrap: wrap; }
+
+.browse-page-actions { display: flex; justify-content: flex-end; margin-bottom: 20px; }

@@ -7,6 +7,7 @@ name = "ckanext-nis-portal"
 version = "1.0.0"
 description = "React interface and session-authenticated bridge for the NIS CKAN portal"
 requires-python = ">=3.10"
+dependencies = ["openpyxl>=3.1.5,<4"]
 
 [project.entry-points."ckan.plugins"]
 nis_portal = "ckanext.nis_portal.plugin:NisPortalPlugin"

@@ -24,6 +24,7 @@ import {
   OrganizationDetail,
   Organizations,
 } from "./catalog";
+import { ExcelImportPage } from "./excel-import";
 import { ResourcePage } from "./resource";
 import { ResourceManagement } from "./resource-manage";
 import { OrganizationDatasets } from "./organization-datasets";
@@ -59,6 +60,10 @@ function App() {
             <Route path="/dataset" element={<Catalog />} />
             <Route path="/dataset/new" element={<DatasetEditor />} />
             <Route path="/dataset/edit/:id" element={<DatasetEditor />} />
+            <Route
+              path="/dataset/:id/import/:jobId"
+              element={<ExcelImportPage />}
+            />
             <Route path="/dataset/:id" element={<DatasetDetail />} />
             <Route
               path="/dataset/:id/resource/new"

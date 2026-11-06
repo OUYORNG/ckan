@@ -336,6 +336,17 @@ def make_blueprint():
 
 class NisPortalPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IBlueprint)
+    plugins.implements(plugins.IClick)
+    plugins.implements(plugins.IResourceController, inherit=True)
 
     def get_blueprint(self):
-        return make_blueprint()
+        from .excel_api import blueprint
+        return [make_blueprint(), blueprint()]
+
+    def get_commands(self):
+        from .excel_api import commands
+        return [commands]
+
+    def before_resource_update(self, context, current, resource):
+        if current.get("nis_import") and resource.get("upload"):
+            raise ValidationError({"upload": ["Use Upload new version to preserve Excel import history."]})
