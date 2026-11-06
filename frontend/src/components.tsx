@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -20,6 +20,8 @@ import {
   LockKeyhole,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings2,
   ShieldCheck,
@@ -38,7 +40,7 @@ export function Brand() {
         <span />
         <span />
       </span>
-      <span>
+      <span className="brand-text">
         <strong>
           NIS<span className="brand-light"> DATA</span>
         </strong>
@@ -50,6 +52,28 @@ export function Brand() {
 export function Shell({ children }: { children: ReactNode }) {
   const { session, update, refresh } = useSession();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("nis-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("nis-sidebar-collapsed", String(collapsed));
+    } catch {
+      /* Navigation remains usable when browser storage is unavailable. */
+    }
+  }, [collapsed]);
+  useEffect(() => {
+    if (!open) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
   const [query, setQuery] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
@@ -103,7 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { to: "/group", label: "Topics", icon: FolderOpen },
   ];
   return (
-    <div className="app-shell">
+    <div className={"app-shell" + (collapsed ? " sidebar-collapsed" : "")}>
       {open && (
         <button
           className="sidebar-scrim"
@@ -111,7 +135,7 @@ export function Shell({ children }: { children: ReactNode }) {
           onClick={() => setOpen(false)}
         />
       )}
-      <aside className={"sidebar" + (open ? " open" : "")}>
+      <aside id="portal-sidebar" className={"sidebar" + (open ? " open" : "")}>
         <Brand />
         <div className="sidebar-section-label">EXPLORE</div>
         <nav aria-label="Main navigation">
@@ -119,6 +143,8 @@ export function Shell({ children }: { children: ReactNode }) {
             <NavLink
               key={to}
               to={to}
+              aria-label={label}
+              title={label}
               end={to === "/"}
               onClick={() => setOpen(false)}
               className={({ isActive }) =>
@@ -126,7 +152,7 @@ export function Shell({ children }: { children: ReactNode }) {
               }
             >
               <Icon size={19} />
-              <span>{label}</span>
+              <span className="nav-label">{label}</span>
               {to === "/dataset" && <span className="nav-dot" />}
             </NavLink>
           ))}
@@ -135,25 +161,38 @@ export function Shell({ children }: { children: ReactNode }) {
         <nav aria-label="Workspace navigation">
           <NavLink
             to="/workspace"
+            aria-label="My workspace"
+            title="My workspace"
             onClick={() => setOpen(false)}
             className="nav-item"
           >
             <Users size={19} />
-            <span>My workspace</span>
+            <span className="nav-label">My workspace</span>
             {!session?.user && <LockKeyhole size={13} className="muted" />}
           </NavLink>
           {session?.user?.sysadmin && (
             <NavLink
               to="/ckan-admin"
+              aria-label="Administration"
+              title="Administration"
               className="nav-item"
               onClick={() => setOpen(false)}
             >
               <ShieldCheck size={19} />
-              <span>Administration</span>
+              <span className="nav-label">Administration</span>
             </NavLink>
           )}
         </nav>
         <div className="sidebar-bottom">
+          <Link
+            className="sidebar-api-icon nav-item"
+            to="/api-guide"
+            aria-label="API guide"
+            title="API guide"
+            onClick={() => setOpen(false)}
+          >
+            <BookOpen size={19} />
+          </Link>
           <div className="sidebar-help">
             <div className="help-icon">
               <BookOpen size={19} />
@@ -174,8 +213,24 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className="topbar">
           <div className="topbar-left">
             <button
+              className="icon-button sidebar-toggle"
+              aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-expanded={!collapsed}
+              aria-controls="portal-sidebar"
+              onClick={() => setCollapsed((value) => !value)}
+            >
+              {collapsed ? (
+                <PanelLeftOpen size={21} />
+              ) : (
+                <PanelLeftClose size={21} />
+              )}
+            </button>
+            <button
               className="icon-button mobile-menu"
               aria-label="Open navigation"
+              aria-controls="portal-sidebar"
+              aria-expanded={open}
               onClick={() => setOpen(true)}
             >
               <Menu size={21} />

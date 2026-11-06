@@ -8,7 +8,8 @@
     "build:ui": "npm --prefix frontend run build",
     "verify:portal": "node frontend/tests/portal.cjs",
     "verify:resources": "node frontend/tests/resource-management.cjs",
-    "verify:organizations": "node frontend/tests/organization-datasets.cjs"
+    "verify:organizations": "node frontend/tests/organization-datasets.cjs",
+    "verify:sidebar": "node frontend/tests/sidebar.cjs"
   },
   "devDependencies": {
     "playwright": "1.64.1"

@@ -30,6 +30,8 @@ npm run build:ui
 
 This checks TypeScript and produces `frontend/dist/`. Production image builds run these same checks and copy the generated bundle into the extension package.
 
+The desktop header toggle collapses the sidebar to navigation icons and expands it back. The browser remembers this layout preference across pages and reloads. Icon links retain accessible names and hover titles. Mobile navigation continues to use the full-width drawer, with Escape and link navigation closing it. The header is 64px tall on desktop and 56px on mobile.
+
 ## Authentication and authorization
 
 - `/portal/api/session` returns the current user's profile, accessible organizations, and a CSRF token. It does not return API tokens or other users' details.
@@ -67,6 +69,7 @@ npm run verify:browser
 npm run verify:portal
 npm run verify:resources
 npm run verify:organizations
+npm run verify:sidebar
 ```
 
 `verify:browser` checks the imported organization, three table previews, and searches. `verify:portal` additionally checks anonymous/private access, CSRF, create/edit/upload flows, dataset contacts/source/custom metadata and resource preservation, organization logo upload/removal, CSV export, API-token management, member/editor/outside-user permissions, desktop/mobile rendering, and JavaScript/server errors. It creates temporary QA users and data on localhost:5100 and cleans them up afterward. Do not point this test at production. Screenshots are written to ignored `frontend/test-results/`.
@@ -74,6 +77,8 @@ npm run verify:organizations
 `verify:resources` checks metadata preservation, dictionary edits without changing rows or unique keys, view management and embedded previews, file replacement and DataPusher import/logs, editor permissions, and mobile layout. It creates and deletes temporary QA records on the local instance.
 
 `verify:organizations` checks row/card behavior, page-scoped selection, confirmed visibility changes and deletion, search/sorting, resource and table preservation, permissions and CSRF, organization preselection, and mobile layouts using temporary QA records. The original imported datasets are only read during this check.
+
+`verify:sidebar` checks collapse/expand, icon navigation, preference persistence, keyboard controls, mobile drawer behavior, and compact header dimensions without changing data.
 
 ## Update an existing deployment
 

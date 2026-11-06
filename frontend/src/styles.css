@@ -305,7 +305,7 @@ code {
   flex-direction: column;
 }
 .topbar {
-  height: 79px;
+  height: 64px;
   display: flex;
   align-items: center;
   gap: 24px;
@@ -2772,7 +2772,7 @@ main {
     display: inline-flex;
   }
   .topbar {
-    height: 66px;
+    height: 56px;
     padding: 0 20px;
     gap: 12px;
   }
@@ -3764,4 +3764,62 @@ main {
 }
 .organization-heading-label .role-badge {
   margin-left: 0;
+}
+
+.sidebar-api-icon {
+  display: none;
+}
+@media (min-width: 761px) {
+  .app-shell.sidebar-collapsed .sidebar {
+    width: 76px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .app-shell.sidebar-collapsed .main-shell {
+    margin-left: 76px;
+  }
+  .sidebar-collapsed .brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .sidebar-collapsed .brand-mark {
+    flex-shrink: 0;
+  }
+  .sidebar-collapsed .brand-text,
+  .sidebar-collapsed .sidebar-section-label,
+  .sidebar-collapsed .nav-label,
+  .sidebar-collapsed .nav-dot,
+  .sidebar-collapsed .nav-item > .muted,
+  .sidebar-collapsed .sidebar-help,
+  .sidebar-collapsed .sidebar-footer span {
+    display: none;
+  }
+  .sidebar-collapsed .nav-item {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .sidebar-collapsed .nav-item > svg {
+    flex-shrink: 0;
+  }
+  .sidebar-collapsed .workspace-label + nav {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    margin-top: 14px;
+  }
+  .sidebar-collapsed .sidebar-api-icon {
+    display: flex;
+    margin-bottom: 16px;
+  }
+  .sidebar-collapsed .sidebar-footer {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+@media (max-width: 760px) {
+  .sidebar-toggle {
+    display: none;
+  }
 }
