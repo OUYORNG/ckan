@@ -3770,49 +3770,74 @@ main {
   display: none;
 }
 @media (min-width: 761px) {
-  .app-shell.sidebar-collapsed .sidebar {
+  .app-shell.sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) {
     width: 76px;
     padding-left: 12px;
     padding-right: 12px;
   }
+  .sidebar-collapsed .sidebar:is(:hover, :has(:focus-visible)) {
+    box-shadow: 8px 0 24px #203b3014;
+  }
   .app-shell.sidebar-collapsed .main-shell {
     margin-left: 76px;
   }
-  .sidebar-collapsed .brand {
+  .sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) .brand {
     justify-content: center;
     padding-left: 0;
     padding-right: 0;
   }
-  .sidebar-collapsed .brand-mark {
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .brand-mark {
     flex-shrink: 0;
   }
-  .sidebar-collapsed .brand-text,
-  .sidebar-collapsed .sidebar-section-label,
-  .sidebar-collapsed .nav-label,
-  .sidebar-collapsed .nav-dot,
-  .sidebar-collapsed .nav-item > .muted,
-  .sidebar-collapsed .sidebar-help,
-  .sidebar-collapsed .sidebar-footer span {
+  .sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) .brand-text,
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .sidebar-section-label,
+  .sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) .nav-label,
+  .sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) .nav-dot,
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .nav-item
+    > .muted,
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .sidebar-help,
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .sidebar-footer
+    span {
     display: none;
   }
-  .sidebar-collapsed .nav-item {
+  .sidebar-collapsed .sidebar:not(:hover):not(:has(:focus-visible)) .nav-item {
     justify-content: center;
     padding-left: 0;
     padding-right: 0;
   }
-  .sidebar-collapsed .nav-item > svg {
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .nav-item
+    > svg {
     flex-shrink: 0;
   }
-  .sidebar-collapsed .workspace-label + nav {
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .workspace-label
+    + nav {
     border-top: 1px solid var(--border);
     padding-top: 14px;
     margin-top: 14px;
   }
-  .sidebar-collapsed .sidebar-api-icon {
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .sidebar-api-icon {
     display: flex;
     margin-bottom: 16px;
   }
-  .sidebar-collapsed .sidebar-footer {
+  .sidebar-collapsed
+    .sidebar:not(:hover):not(:has(:focus-visible))
+    .sidebar-footer {
     justify-content: center;
     padding-left: 0;
     padding-right: 0;

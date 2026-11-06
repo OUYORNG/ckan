@@ -30,7 +30,7 @@ npm run build:ui
 
 This checks TypeScript and produces `frontend/dist/`. Production image builds run these same checks and copy the generated bundle into the extension package.
 
-The desktop header toggle collapses the sidebar to navigation icons and expands it back. The browser remembers this layout preference across pages and reloads. Icon links retain accessible names and hover titles. Mobile navigation continues to use the full-width drawer, with Escape and link navigation closing it. The header is 64px tall on desktop and 56px on mobile.
+The desktop header toggle collapses the sidebar to navigation icons and expands it back. The browser remembers this layout preference across pages and reloads. Hovering over the collapsed sidebar temporarily expands it over the page without moving content or changing the saved preference. Keyboard focus also reveals the full navigation. Icon links retain accessible names and hover titles. Mobile navigation continues to use the full-width drawer, with Escape and link navigation closing it. The header is 64px tall on desktop and 56px on mobile.
 
 ## Authentication and authorization
 
